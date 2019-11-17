@@ -3,40 +3,65 @@ package pl.edu.agh.mock.algorithm
 import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model._
 import pl.edu.agh.mock.simulation.MockMetrics
-import pl.edu.agh.mock.utlis.GridUtils
-import pl.edu.agh.mock.utlis.{DistanceUtils, MovementDirectionUtils, SmellUtils}
+import pl.edu.agh.mock.utils.{DistanceUtils, GridUtils, MovementDirectionUtils, SmellUtils}
+import pl.edu.agh.mock.utlis.{AStartAlgorithmUtils, AlgorithmUtils, Direction}
 import pl.edu.agh.xinuk.algorithm.MovesController
 import pl.edu.agh.xinuk.model.{Obstacle, _}
 
 import scala.collection.immutable.TreeSet
-import scala.util.Random
 
 final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config: MockConfig) extends MovesController {
 
   var crowdOnProcessor = 0
+  var transitionsThroughWorkers: Map[Int, Map[(Direction.Value, Direction.Value), Boolean]] = Map[Int, Map[(Direction.Value, Direction.Value), Boolean]]()
+  val algorithmUtils = new AlgorithmUtils()
+  var receivedMessages = 0
 
-  private val random = new Random(System.nanoTime())
+  override def receiveMessage(message: Any): Unit = {
+    val tuple = message.asInstanceOf[(Int, Map[(Direction.Value, Direction.Value), Boolean])]
+    transitionsThroughWorkers += (tuple._1 -> tuple._2)
+    receivedMessages += 1
+    if (receivedMessages == math.pow(config.workersRoot, 2).toInt) {
+      println(transitionsThroughWorkers)
+    }
+  }
 
-  override def initialGrid(workerId: WorkerId): (Grid, MockMetrics) = {
+  override def initialGrid(workerId: WorkerId): (Grid, MockMetrics, Map[(Direction.Value, Direction.Value), Boolean]) = {
     val grid = Grid.empty(bufferZone,workerId = workerId)
 
+//    GridUtils.loadDataFromFile("map.json", grid)
+    //grid.cells(1)(0) = Obstacle
 
-    //GridUtils.addDataFromFile("map.json", grid)
+    algorithmUtils.mapLocalDistancesForEveryDirection(grid)
+    algorithmUtils.mapTransitionsThroughThisWorker(grid)
 
-    grid.cells(config.gridSize / 2)(config.gridSize / 2) =
-      MockCell.create(config.mockInitialSignal,
-        destinationPoint = POIFactory.generatePOI(grid),
-        workerId = grid.workerId)
+//    grid.cells(5)(5) = Obstacle
+//    grid.cells(4)(5) = Obstacle
+//    grid.cells(5)(4) = Obstacle
+//    grid.cells(5)(3) = Obstacle
+//    grid.cells(5)(2) = Obstacle
+//
+//    AStartAlgorithmUtils.aStar((1,1), (13,12), grid)
+//        .foreach(println)
+
+    Thread.sleep(1000)
+
+    if(grid.cells(config.gridSize / 2)(config.gridSize / 2).isInstanceOf[EmptyCell]) {
+      grid.cells(config.gridSize / 2)(config.gridSize / 2) =
+        MockCell.create(config.mockInitialSignal,
+          destinationPoint = POIFactory.generatePOI(grid),
+          workerId = grid.workerId)
+    }
 
     val metrics = MockMetrics.empty()
-    (grid, metrics)
+    (grid, metrics, algorithmUtils.transitionsThroughThisWorker)
   }
 
 
   override def makeMoves(iteration: Long, grid: Grid): (Grid, MockMetrics) = {
 
     val newGrid = Grid.empty(bufferZone, workerId = grid.workerId)
-    Thread.sleep(4)
+    Thread.sleep(10)
 
     def copyCells(x: Int, y: Int, cell: GridPart): Unit = {
       newGrid.cells(x)(y) = cell
@@ -155,10 +180,10 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
       val mock: MockCell = cell.asInstanceOf[MockCell]
 
-      val newSmell = mock.smell.map{
-        case arr: Array[Signal] =>
-          arr.map{
-            case sig: Signal => Signal(sig.value + config.mockInitialSignal.value)
+      val newSmell = mock.smell.map {
+        arr: Array[Signal] =>
+          arr.map {
+            sig: Signal => Signal(sig.value + config.mockInitialSignal.value)
           }
       }
 
@@ -224,11 +249,12 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   def isDestinationPointAccessible(grid: Grid, cell: MockCell): Boolean = {
     val point = cell.destinationPoint
-    if (point.workerId.value != cell.workerId.value) return true;
+    if (point.workerId.value != cell.workerId.value) return true
     grid.cells(point.x)(point.y) match {
       case Obstacle => false
       case _ => true
     }
   }
+
 
 }

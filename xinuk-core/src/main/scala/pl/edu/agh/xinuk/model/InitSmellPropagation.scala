@@ -3,7 +3,7 @@ package pl.edu.agh.xinuk.model
 import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model.Grid.{CellArray, SubcellCoordinates}
 
-object DefaultSmellPropagation {
+object InitSmellPropagation {
 
   def calculateSmellAddends(cells: CellArray, x: Int, y: Int): Vector[Option[Signal]] = {
     @inline def destinationCellSignal(i: Int, j: Int): Option[SmellArray] = {
@@ -17,12 +17,7 @@ object DefaultSmellPropagation {
         )
       case (i, j) =>
         destinationCellSignal(i, j).map(signal => {
-          var signalSum = signal(i)(j)
-          if(!outOfBounds(x + (j - i) / 2, y + (i + j - 2) / 2, cells) && cells(x + (j - i) / 2)(y + (i + j - 2) / 2) == Obstacle)
-            signalSum += signal(i / 2 + j / 2)(j /2 - i / 2 + 1) + signal(j)(2 - i)
-          if(!outOfBounds(x + (i + j - 2) / 2, y + (i - j) / 2, cells) && cells(x + (i + j - 2) / 2)(y + (i - j) / 2) == Obstacle)
-            signalSum += signal(i / 2 - j / 2 + 1)(j / 2 + i / 2) + signal(2 - j)(i)
-          signalSum
+          signal(i)(j) + signal(i / 2 - j / 2 + 1)(j / 2 + i / 2) + signal(i / 2 + j / 2)(j /2 - i / 2 + 1)
         })
     }
   }

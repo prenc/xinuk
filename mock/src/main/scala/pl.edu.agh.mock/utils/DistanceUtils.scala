@@ -1,9 +1,8 @@
-package pl.edu.agh.mock.utlis
+package pl.edu.agh.mock.utils
 
 import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model.{LocalPoint, MockCell, Point}
 import pl.edu.agh.xinuk.model.{BufferCell, EmptyCell, Grid}
-import scala.math.abs
 
 object DistanceUtils  {
   def calculateDistance(firstPoint: LocalPoint, secondPoint: LocalPoint)(implicit config: MockConfig): Double = {
@@ -14,7 +13,6 @@ object DistanceUtils  {
   }
 
   def calculateGlobalPosition(point: LocalPoint)(implicit config: MockConfig): Point = {
-
     val globalX = (point.workerId.value - 1) / config.workersRoot
     val globalY = (point.workerId.value - 1) % config.workersRoot
 

@@ -19,7 +19,8 @@ class WorkerActor[ConfigType <: XinukConfig](
                                               movesControllerFactory: (TreeSet[(Int, Int)], ConfigType) => MovesController,
                                               conflictResolver: ConflictResolver[ConfigType],
                                               smellPropagationFunction: (CellArray, Int, Int) => Vector[Option[Signal]],
-                                              emptyCellFactory: => SmellingCell = EmptyCell.Instance)(implicit config: ConfigType) extends Actor with Stash {
+                                              emptyCellFactory: => SmellingCell = EmptyCell.Instance
+                                            )(implicit config: ConfigType) extends Actor with Stash {
 
   import pl.edu.agh.xinuk.simulation.WorkerActor._
 
@@ -52,6 +53,8 @@ class WorkerActor[ConfigType <: XinukConfig](
     }
   }
 
+  var receivedMessages = 0
+
   def stopped: Receive = {
     case SubscribeGridInfo(_) =>
       guiActors += sender()
@@ -65,40 +68,53 @@ class WorkerActor[ConfigType <: XinukConfig](
       logger.info(s"${id.value} neighbours: ${neighbours.map(_.position).toList}")
       self ! StartIteration(1)
     case StartIteration(1) =>
-      val (newGrid, newMetrics) = movesController.initialGrid(workerID = this.id)
+      val (newGrid, newMetrics, transitionsThroughWorker) = movesController.initialGrid(workerID = this.id)
+      (1 to math.pow(config.workersRoot, 2).toInt)
+        .map(WorkerId).foreach(workerId => {
+          regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[(Any, Any), Boolean]])
+        })
       this.grid = newGrid
       logMetrics(1, newMetrics)
       guiActors.foreach(_ ! GridInfo(1, grid, newMetrics))
       propagateSignal()
       notifyNeighbours(1, grid)
       unstashAll()
-      context.become(started)
     case _: IterationPartFinished =>
       stash()
+    case TransitionsThroughWorker(from, to, transitions) => {
+      println(from, to)
+      movesController.receiveMessage((from.value, transitions))
+      receivedMessages += 1
+      if (receivedMessages == math.pow(config.workersRoot, 2).toInt) {
+        context.become(started)
+      }
+    }
   }
 
   var currentIteration: Long = 1
+  val logInterval: Long = this.config.iterationsNumber / 10
+  var metricsAdded: Boolean = false
 
   def started: Receive = {
     case StartIteration(i) =>
       finished.remove(i - 1)
-      logger.debug(s"$id started $i")
+      if (i % logInterval == 0) logger.debug(s"$id started $i")
       val (newGrid, newMetrics) = movesController.makeMoves(i, grid)
       grid = newGrid
       val metrics = newMetrics + conflictResolutionMetrics
-      logMetrics(i, metrics)
+      if (i % logInterval == 0) logMetrics(i, metrics)
       guiActors.foreach(_ ! GridInfo(i, grid, metrics))
       propagateSignal()
       notifyNeighbours(i, grid)
       conflictResolutionMetrics = null
-      if (i % 100 == 0) logger.info(s"$id finished $i")
+      if (i % logInterval == 0) logger.info(s"$id finished $i")
     case IterationPartFinished(workerId, _, iteration, neighbourBuffer) =>
       val currentlyFinished: Vector[IncomingNeighbourCells] = finished(iteration)
       val incomingNeighbourCells: IncomingNeighbourCells =
         if (workerId != id) {
           val neighbour = neighbours(workerId)
           val affectedCells: Iterator[(Int, Int)] = neighbour.position.affectedCells
-          val incoming: Vector[((Int, Int), BufferCell)] =
+          val incoming: Vector[((Int, Int), Any)] =
             affectedCells.zip(neighbourBuffer.iterator)
               .filterNot { case ((x, y), _) => bufferZone.contains((x, y)) } //at most 8 cells are discarded
               .toVector
@@ -114,16 +130,23 @@ class WorkerActor[ConfigType <: XinukConfig](
             case ((x, y), BufferCell(cell)) =>
               val currentCell = grid.cells(x)(y)
               val (resolved, partialResolvingMetrics) = conflictResolver.resolveConflict(currentCell, cell)
-              conflictResolutionMetrics = partialResolvingMetrics + conflictResolutionMetrics
+              if (!metricsAdded) {
+                conflictResolutionMetrics = partialResolvingMetrics + conflictResolutionMetrics
+                metricsAdded = true
+              }
               grid.cells(x)(y) = resolved
+            case ((x, y), Obstacle) => grid.cells(x)(y) = Obstacle
+            case ((x, y), _) =>
           })
 
           //clean buffers
           bufferZone.foreach { case (x, y) =>
-            grid.cells(x)(y) = BufferCell(emptyCellFactory)
+            if( grid.cells(x)(y).isInstanceOf[BufferCell])
+              grid.cells(x)(y) = BufferCell(emptyCellFactory)
           }
 
           currentIteration += 1
+          metricsAdded = false
           self ! StartIteration(currentIteration)
         }
       } else if (finished(currentIteration).size == neighbours.size + 1) {
@@ -136,7 +159,14 @@ class WorkerActor[ConfigType <: XinukConfig](
   private def notifyNeighbours(iteration: Long, grid: Grid): Unit = {
     self ! IterationPartFinished(id, id, iteration, Array.empty)
     neighbours.foreach { case (neighbourId, ngh) =>
-      val bufferArray = ngh.position.bufferZone.iterator.map { case (x, y) => grid.cells(x)(y).asInstanceOf[BufferCell] }.toArray
+      val bufferArray = ngh.position.bufferZone.iterator
+        .map {
+          case (x, y) => {
+            if(grid.cells(x)(y).isInstanceOf[BufferCell]) {
+              grid.cells(x)(y)
+            }
+          }
+        }.toArray
       regionRef ! IterationPartFinished(id, neighbourId, iteration, bufferArray)
     }
   }
@@ -152,7 +182,7 @@ object WorkerActor {
 
   final val MetricsMarker = MarkerFactory.getMarker("METRICS")
 
-  private final class IncomingNeighbourCells(val cells: Vector[((Int, Int), BufferCell)]) extends AnyVal
+  private final class IncomingNeighbourCells(val cells: Vector[((Int, Int), Any)]) extends AnyVal
 
   final case class NeighboursInitialized(id: WorkerId, neighbours: Vector[Neighbour])
 
@@ -161,9 +191,11 @@ object WorkerActor {
   final case class SubscribeGridInfo(id: WorkerId)
 
   //sent to listeners
-  final case class IterationPartFinished private(worker: WorkerId, to: WorkerId, iteration: Long, incomingBuffer: Array[BufferCell])
+  final case class IterationPartFinished private(worker: WorkerId, to: WorkerId, iteration: Long, incomingBuffer: Array[Any])
 
   final case class IterationPartMetrics private(workerId: WorkerId, iteration: Long, metrics: Metrics)
+
+  final case class TransitionsThroughWorker private(from: WorkerId, to: WorkerId,  transitions: Map[(Any, Any), Boolean])
 
   def props[ConfigType <: XinukConfig](
                                         regionRef: => ActorRef,
@@ -181,6 +213,7 @@ object WorkerActor {
     case NeighboursInitialized(id, _) => idToShard(id)
     case IterationPartFinished(_, id, _, _) => idToShard(id)
     case SubscribeGridInfo(id) => idToShard(id)
+    case TransitionsThroughWorker(_, id, _) => idToShard(id)
   }
 
   def extractEntityId: ExtractEntityId = {
@@ -190,5 +223,7 @@ object WorkerActor {
       (to.value.toString, msg)
     case msg@SubscribeGridInfo(id) =>
       (id.value.toString, msg)
+    case msg@TransitionsThroughWorker(_, to, _) =>
+      (to.value.toString, msg)
   }
 }
