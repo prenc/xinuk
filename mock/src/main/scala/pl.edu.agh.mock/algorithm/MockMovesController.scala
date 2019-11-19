@@ -3,7 +3,7 @@ package pl.edu.agh.mock.algorithm
 import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model._
 import pl.edu.agh.mock.simulation.MockMetrics
-import pl.edu.agh.mock.utils.{DistanceUtils, GridUtils, MovementDirectionUtils, SmellUtils}
+import pl.edu.agh.mock.utils.{AlgorithmHelpers, DistanceUtils, GridUtils, MovementDirectionUtils, SmellUtils}
 import pl.edu.agh.mock.utlis.{AStartAlgorithmUtils, AlgorithmUtils, Direction}
 import pl.edu.agh.xinuk.algorithm.MovesController
 import pl.edu.agh.xinuk.model.{Obstacle, _}
@@ -13,12 +13,12 @@ import scala.collection.immutable.TreeSet
 final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config: MockConfig) extends MovesController {
 
   var crowdOnProcessor = 0
-  var transitionsThroughWorkers: Map[Int, Map[(Direction.Value, Direction.Value), Boolean]] = Map[Int, Map[(Direction.Value, Direction.Value), Boolean]]()
+  var transitionsThroughWorkers: Map[Int, Map[Direction.Value, List[Direction.Value]]] = Map[Int, Map[Direction.Value, List[Direction.Value]]]()
   val algorithmUtils = new AlgorithmUtils()
   var receivedMessages = 0
 
   override def receiveMessage(message: Any): Unit = {
-    val tuple = message.asInstanceOf[(Int, Map[(Direction.Value, Direction.Value), Boolean])]
+    val tuple = message.asInstanceOf[(Int, Map[Direction.Value, List[Direction.Value]])]
     transitionsThroughWorkers += (tuple._1 -> tuple._2)
     receivedMessages += 1
     if (receivedMessages == math.pow(config.workersRoot, 2).toInt) {
@@ -26,23 +26,25 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     }
   }
 
-  override def initialGrid(workerId: WorkerId): (Grid, MockMetrics, Map[(Direction.Value, Direction.Value), Boolean]) = {
+  override def initialGrid(workerId: WorkerId): (Grid, MockMetrics, Map[Direction.Value, List[Direction.Value]]) = {
     val grid = Grid.empty(bufferZone,workerId = workerId)
 
 //    GridUtils.loadDataFromFile("map.json", grid)
-    //grid.cells(1)(0) = Obstacle
+    if (workerId.value == 1) {
+      grid.cells(1)(5) = Obstacle
+      grid.cells(2)(5) = Obstacle
+      grid.cells(3)(5) = Obstacle
+      grid.cells(4)(5) = Obstacle
+      grid.cells(5)(5) = Obstacle
+    }
 
     algorithmUtils.mapLocalDistancesForEveryDirection(grid)
     algorithmUtils.mapTransitionsThroughThisWorker(grid)
 
-//    grid.cells(5)(5) = Obstacle
-//    grid.cells(4)(5) = Obstacle
-//    grid.cells(5)(4) = Obstacle
-//    grid.cells(5)(3) = Obstacle
-//    grid.cells(5)(2) = Obstacle
 //
 //    AStartAlgorithmUtils.aStar((1,1), (13,12), grid)
 //        .foreach(println)
+
 
     Thread.sleep(1000)
 
@@ -54,11 +56,14 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     }
 
     val metrics = MockMetrics.empty()
-    (grid, metrics, algorithmUtils.transitionsThroughThisWorker)
+    (grid, metrics, algorithmUtils.getTransitionsThroughThisWorker())
   }
 
 
   override def makeMoves(iteration: Long, grid: Grid): (Grid, MockMetrics) = {
+    AlgorithmHelpers.aStar(1, 2, transitionsThroughWorkers).foreach(workerId => println("workerId: ", workerId))
+    throw new Exception("end")
+
 
     val newGrid = Grid.empty(bufferZone, workerId = grid.workerId)
     Thread.sleep(10)

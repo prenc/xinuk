@@ -6,6 +6,8 @@ import pl.edu.agh.mock.utlis.Direction.{Bottom, BottomLeft, BottomRight, Top, To
 import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model.{Grid, InitSmellPropagation, Obstacle, Signal}
 
+import scala.collection.mutable.ListBuffer
+
 object Direction extends Enumeration {
   val TopLeft, Top, TopRight, Left, Right, BottomLeft, Bottom, BottomRight = Value
 
@@ -28,9 +30,24 @@ class AlgorithmUtils {
 
   var directionalSmell: Map[Direction.Value, DirectionalSmellArray] = Map[Direction.Value, DirectionalSmellArray]()
 
-  var transitionsThroughThisWorker: Map[(Direction.Value, Direction.Value), Boolean] = Map[(Direction.Value, Direction.Value), Boolean]()
+  var transitionsThroughThisWorker: Map[Direction.Value, ListBuffer[Direction.Value]] = Map[Direction.Value, ListBuffer[Direction.Value]]()
+
+  def getTransitionsThroughThisWorker(): Map[Direction.Value, List[Direction.Value]] = {
+    var transitions = Map[Direction.Value, List[Direction.Value]]()
+    for (direction <- transitionsThroughThisWorker.keys) {
+      transitions += (direction -> transitionsThroughThisWorker.apply(direction).toList)
+    }
+    transitions
+  }
+
+  def initializeEmptyListsForTransitions(): Unit = {
+    for (direction <- Direction.values) {
+      transitionsThroughThisWorker += (direction -> ListBuffer[Direction.Value]())
+    }
+  }
 
   def mapTransitionsThroughThisWorker(grid: Grid)(implicit config: MockConfig): Unit = {
+    initializeEmptyListsForTransitions()
     for (sourceDirection <- Direction.values) {
       val coordinatesToCheck = coordinatesToCheckFor(sourceDirection)
       for (destinationDirection <- Direction.values) {
@@ -46,12 +63,12 @@ class AlgorithmUtils {
               sumOfPositive += 1
             }
           }
-          transitionsThroughThisWorker += ((sourceDirection, destinationDirection) -> (sumOfPositive == coordinatesToCheck.length))
+          if (sumOfPositive == coordinatesToCheck.length) {
+            transitionsThroughThisWorker.apply(sourceDirection) += destinationDirection
+          }
         }
       }
     }
-
-//    FileSerializationUtils.serializeInFile[Map[(Direction.Value, Direction.Value), Boolean]](transitionsThroughThisWorker, "transitionsThrough" + grid.workerId.value)
   }
 
   def coordinatesToCheckFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {

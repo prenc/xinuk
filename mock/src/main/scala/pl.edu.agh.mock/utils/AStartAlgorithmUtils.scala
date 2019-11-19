@@ -45,7 +45,7 @@ object AStartAlgorithmUtils {
   }
 
   def heuristic(node: (Int, Int), goal: (Int, Int), grid: Grid): Double = {
-    Math.sqrt(Math.pow(node._1 - goal._1, 2) + Math.pow(node._2 - node._2, 2))
+    Math.sqrt(Math.pow(node._1 - goal._1, 2) + Math.pow(node._2 - goal._2, 2))
   }
 
   def nodeWithLowestFScoreValue(openSet: Set[(Int, Int)], fScore: Map[(Int, Int), Double]): (Int, Int) = {

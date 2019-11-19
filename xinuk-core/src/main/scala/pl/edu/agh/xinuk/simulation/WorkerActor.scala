@@ -71,7 +71,7 @@ class WorkerActor[ConfigType <: XinukConfig](
       val (newGrid, newMetrics, transitionsThroughWorker) = movesController.initialGrid(workerID = this.id)
       (1 to math.pow(config.workersRoot, 2).toInt)
         .map(WorkerId).foreach(workerId => {
-          regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[(Any, Any), Boolean]])
+          regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[Any, List[Any]]])
         })
       this.grid = newGrid
       logMetrics(1, newMetrics)
@@ -195,7 +195,7 @@ object WorkerActor {
 
   final case class IterationPartMetrics private(workerId: WorkerId, iteration: Long, metrics: Metrics)
 
-  final case class TransitionsThroughWorker private(from: WorkerId, to: WorkerId,  transitions: Map[(Any, Any), Boolean])
+  final case class TransitionsThroughWorker private(from: WorkerId, to: WorkerId,  transitions: Map[Any, List[Any]])
 
   def props[ConfigType <: XinukConfig](
                                         regionRef: => ActorRef,
