@@ -4,10 +4,11 @@ import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model._
 import pl.edu.agh.mock.simulation.MockMetrics
 import pl.edu.agh.mock.utils.GlobalAStarAlgorithmUtils
-import pl.edu.agh.mock.utlis.{AlgorithmUtils, Direction, LocalAStarAlgorithmUtils}
+import pl.edu.agh.mock.utlis.{AlgorithmUtils, LocalAStarAlgorithmUtils}
 import pl.edu.agh.xinuk.algorithm.MovesController
 import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model.{Obstacle, _}
+import pl.edu.agh.xinuk.utils.Direction
 
 import scala.collection.immutable.TreeSet
 
@@ -60,7 +61,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
     algorithmUtils.mapTransitionsThroughThisWorker(grid)
 
-    if (grid.cells(config.gridSize / 2)(config.gridSize / 2 ).isInstanceOf[EmptyCell]&& workerId.value == 1) {
+    if (grid.cells(config.gridSize / 2)(config.gridSize / 2 ).isInstanceOf[EmptyCell]) {
       val mock = MockCell.create(
         config.mockInitialSignal,
         destinationPoint = POIFactory.generatePOI(grid),

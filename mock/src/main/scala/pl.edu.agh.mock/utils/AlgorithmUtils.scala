@@ -2,28 +2,11 @@ package pl.edu.agh.mock.utlis
 
 import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model.{LocalPoint, MockCell}
-import pl.edu.agh.mock.utlis.Direction.{Bottom, BottomLeft, BottomRight, Top, TopLeft, TopRight}
 import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model.{BufferCell, Grid, InitSmellPropagation, Obstacle, Signal}
+import pl.edu.agh.xinuk.utils.Direction
 
 import scala.collection.mutable.ListBuffer
-
-object Direction extends Enumeration {
-  val TopLeft, Top, TopRight, Left, Right, BottomLeft, Bottom, BottomRight = Value
-
-  def reversed(direction: Direction.Value): Direction.Value = {
-    direction match {
-      case TopLeft => BottomRight
-      case Top => Bottom
-      case TopRight => BottomLeft
-      case Left => Right
-      case Right => Left
-      case BottomLeft => TopRight
-      case Bottom => Top
-      case BottomRight => TopLeft
-    }
-  }
-}
 
 class AlgorithmUtils(val workerId: Int) {
   type DirectionalSmellArray = Array[Array[SmellArray]]
@@ -77,14 +60,14 @@ class AlgorithmUtils(val workerId: Int) {
 
   def coordinatesToCheckFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {
     val coordinates = direction match {
-      case TopLeft => Array((1, 1))
-      case Top => Array.range(1, config.gridSize - 1).map(num => (1, num))
-      case TopRight => Array((1, config.gridSize - 2))
+      case Direction.TopLeft => Array((1, 1))
+      case Direction.Top => Array.range(1, config.gridSize - 1).map(num => (1, num))
+      case Direction.TopRight => Array((1, config.gridSize - 2))
       case Direction.Left => Array.range(1, config.gridSize - 1).map(num => (num, 1))
       case Direction.Right => Array.range(1, config.gridSize - 1).map(num => (num, config.gridSize - 2))
-      case BottomLeft => Array((config.gridSize - 2, 1))
-      case Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 2, num))
-      case BottomRight => Array((config.gridSize - 2, config.gridSize - 2))
+      case Direction.BottomLeft => Array((config.gridSize - 2, 1))
+      case Direction.Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 2, num))
+      case Direction.BottomRight => Array((config.gridSize - 2, config.gridSize - 2))
     }
     coordinates.map(coordinate => (coordinate._1 - 1, coordinate._2 - 1))
   }
@@ -177,14 +160,14 @@ class AlgorithmUtils(val workerId: Int) {
 
   def initialMockCoordinatesFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {
     direction match {
-      case TopLeft => Array((0, 0))
-      case Top => Array.range(1, config.gridSize - 1).map(num => (0, num))
-      case TopRight => Array((0, config.gridSize - 1))
+      case Direction.TopLeft => Array((0, 0))
+      case Direction.Top => Array.range(1, config.gridSize - 1).map(num => (0, num))
+      case Direction.TopRight => Array((0, config.gridSize - 1))
       case Direction.Left => Array.range(1, config.gridSize - 1).map(num => (num, 0))
       case Direction.Right => Array.range(1, config.gridSize - 1).map(num => (num, config.gridSize - 1))
-      case BottomLeft => Array((config.gridSize - 1, 0))
-      case Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 1, num))
-      case BottomRight => Array((config.gridSize - 1, config.gridSize - 1))
+      case Direction.BottomLeft => Array((config.gridSize - 1, 0))
+      case Direction.Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 1, num))
+      case Direction.BottomRight => Array((config.gridSize - 1, config.gridSize - 1))
     }
   }
 }

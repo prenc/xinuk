@@ -1,8 +1,8 @@
 package pl.edu.agh.mock.utils
 
 import pl.edu.agh.mock.config.MockConfig
-import pl.edu.agh.mock.utlis.Direction
 import pl.edu.agh.xinuk.model.Cell.SmellArray
+import pl.edu.agh.xinuk.utils.Direction
 
 import scala.collection.mutable.ListBuffer
 

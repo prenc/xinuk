@@ -21,7 +21,7 @@ object MockMain extends LazyLogging {
       MockConflictResolver,
       DefaultSmellPropagation.calculateSmellAddends)(new MockMovesController(_)(_),
       {
-        case MockCell(_, x, _,_) =>
+        case MockCell(_, x, _, _, _, _) =>
           x.size match {
             case 0 => Color.white
             case 1 => Color.yellow

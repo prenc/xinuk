@@ -10,6 +10,7 @@ import pl.edu.agh.xinuk.gui.GuiActor.GridInfo
 import pl.edu.agh.xinuk.model.Grid.CellArray
 import pl.edu.agh.xinuk.model._
 import pl.edu.agh.xinuk.model.parallel.{ConflictResolver, Neighbour}
+import pl.edu.agh.xinuk.utils.Direction
 
 import scala.collection.immutable.TreeSet
 import scala.collection.mutable
@@ -74,7 +75,7 @@ class WorkerActor[ConfigType <: XinukConfig](
       guiActors.foreach(_ ! GridInfo(1, grid, newMetrics))
       (1 to math.pow(config.workersRoot, 2).toInt)
         .map(WorkerId).foreach(workerId => {
-          regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[Any, List[Any]]])
+          regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[Int, Map[Direction.Value, List[Direction.Value]]]])
         })
     case _: IterationPartFinished =>
       stash()
@@ -195,7 +196,7 @@ object WorkerActor {
 
   final case class IterationPartMetrics private(workerId: WorkerId, iteration: Long, metrics: Metrics)
 
-  final case class TransitionsThroughWorker private(from: WorkerId, to: WorkerId,  transitions: Map[Any, List[Any]])
+  final case class TransitionsThroughWorker private(from: WorkerId, to: WorkerId,  transitions: Map[Int, Map[Direction.Value, List[Direction.Value]]])
 
   def props[ConfigType <: XinukConfig](
                                         regionRef: => ActorRef,
