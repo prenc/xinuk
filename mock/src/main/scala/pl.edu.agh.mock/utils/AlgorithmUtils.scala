@@ -2,35 +2,39 @@ package pl.edu.agh.mock.utlis
 
 import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model.{LocalPoint, MockCell}
-import pl.edu.agh.mock.utlis.Direction.{Bottom, BottomLeft, BottomRight, Top, TopLeft, TopRight}
 import pl.edu.agh.xinuk.model.Cell.SmellArray
-import pl.edu.agh.xinuk.model.{Grid, InitSmellPropagation, Obstacle, Signal}
+import pl.edu.agh.xinuk.model.{BufferCell, Grid, InitSmellPropagation, Obstacle, Signal}
+import pl.edu.agh.xinuk.utils.Direction
 
-object Direction extends Enumeration {
-  val TopLeft, Top, TopRight, Left, Right, BottomLeft, Bottom, BottomRight = Value
+import scala.collection.mutable.ListBuffer
 
-  def reversed(direction: Direction.Value): Direction.Value = {
-    direction match {
-      case TopLeft => BottomRight
-      case Top => Bottom
-      case TopRight => BottomLeft
-      case Left => Right
-      case Right => Left
-      case BottomLeft => TopRight
-      case Bottom => Top
-      case BottomRight => TopLeft
-    }
-  }
-}
-
-class AlgorithmUtils {
+class AlgorithmUtils(val workerId: Int) {
   type DirectionalSmellArray = Array[Array[SmellArray]]
 
   var directionalSmell: Map[Direction.Value, DirectionalSmellArray] = Map[Direction.Value, DirectionalSmellArray]()
 
-  var transitionsThroughThisWorker: Map[(Direction.Value, Direction.Value), Boolean] = Map[(Direction.Value, Direction.Value), Boolean]()
+  var transitionsThroughThisWorker: Map[Direction.Value, ListBuffer[Direction.Value]] = Map[Direction.Value, ListBuffer[Direction.Value]]()
+
+  def getTransitionsThroughThisWorker(): Map[Direction.Value, List[Direction.Value]] = {
+    var transitions = Map[Direction.Value, List[Direction.Value]]()
+    for (direction <- transitionsThroughThisWorker.keys) {
+      transitions += (direction -> transitionsThroughThisWorker.apply(direction).toList)
+    }
+    transitions
+  }
+
+  def getDirectionalSmell(): Map[Direction.Value, DirectionalSmellArray] = {
+    directionalSmell
+  }
+
+  def initializeEmptyListsForTransitions(): Unit = {
+    for (direction <- Direction.values) {
+      transitionsThroughThisWorker += (direction -> ListBuffer[Direction.Value]())
+    }
+  }
 
   def mapTransitionsThroughThisWorker(grid: Grid)(implicit config: MockConfig): Unit = {
+    initializeEmptyListsForTransitions()
     for (sourceDirection <- Direction.values) {
       val coordinatesToCheck = coordinatesToCheckFor(sourceDirection)
       for (destinationDirection <- Direction.values) {
@@ -46,24 +50,24 @@ class AlgorithmUtils {
               sumOfPositive += 1
             }
           }
-          transitionsThroughThisWorker += ((sourceDirection, destinationDirection) -> (sumOfPositive == coordinatesToCheck.length))
+          if (sumOfPositive == coordinatesToCheck.length) {
+            transitionsThroughThisWorker.apply(sourceDirection) += destinationDirection
+          }
         }
       }
     }
-
-//    FileSerializationUtils.serializeInFile[Map[(Direction.Value, Direction.Value), Boolean]](transitionsThroughThisWorker, "transitionsThrough" + grid.workerId.value)
   }
 
   def coordinatesToCheckFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {
     val coordinates = direction match {
-      case TopLeft => Array((1, 1))
-      case Top => Array.range(1, config.gridSize - 1).map(num => (1, num))
-      case TopRight => Array((1, config.gridSize - 2))
+      case Direction.TopLeft => Array((1, 1))
+      case Direction.Top => Array.range(1, config.gridSize - 1).map(num => (1, num))
+      case Direction.TopRight => Array((1, config.gridSize - 2))
       case Direction.Left => Array.range(1, config.gridSize - 1).map(num => (num, 1))
       case Direction.Right => Array.range(1, config.gridSize - 1).map(num => (num, config.gridSize - 2))
-      case BottomLeft => Array((config.gridSize - 2, 1))
-      case Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 2, num))
-      case BottomRight => Array((config.gridSize - 2, config.gridSize - 2))
+      case Direction.BottomLeft => Array((config.gridSize - 2, 1))
+      case Direction.Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 2, num))
+      case Direction.BottomRight => Array((config.gridSize - 2, config.gridSize - 2))
     }
     coordinates.map(coordinate => (coordinate._1 - 1, coordinate._2 - 1))
   }
@@ -105,16 +109,21 @@ class AlgorithmUtils {
       x <- 0 until config.gridSize;
       y <- 0 until config.gridSize
     ) {
-      newGrid.cells(x)(y) = grid.cells(x)(y)
+      if (grid.cells(x)(y).isInstanceOf[BufferCell]) {
+        newGrid.cells(x)(y) = Obstacle
+      } else {
+        newGrid.cells(x)(y) = grid.cells(x)(y)
+      }
+
     }
 
     val coordinates = initialMockCoordinatesFor(direction)
 
     for (coordinate <- coordinates) {
-      newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), grid.workerId)
+      newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), List[Int](), List[(Int, Int)](), grid.workerId)
     }
 
-    (0 until config.gridSize*2).foreach { _ =>
+    (0 until config.gridSize).foreach { _ =>
       val cells = Array.tabulate(config.gridSize, config.gridSize)((x, y) =>
         newGrid.propagatedSignal(InitSmellPropagation.calculateSmellAddends, x, y)
       )
@@ -129,31 +138,36 @@ class AlgorithmUtils {
 
 //  Printing directional signal for debugging purposes
 
-//    println()
-//    println(direction.toString())
-//    println()
-//    for (arrayOfArraysOfSmell <- directionalSmell(direction)) {
-//      for (arrayOfSmell <- arrayOfArraysOfSmell) {
-//        for (smell <- arrayOfSmell) {
-//          smell.map(signal => signal.value).foreach(smellValue => print(f"$smellValue%5.1f "))
+//    for (i <- 0 to math.pow(config.workersRoot, 2).toInt) {
+//      if (workerId == i) {
+//        println()
+//        println(direction.toString())
+//        println(workerId)
+//        for (arrayOfArraysOfSmell <- directionalSmell(direction)) {
+//          for (arrayOfSmell <- arrayOfArraysOfSmell) {
+//            for (smell <- arrayOfSmell) {
+//              smell.map(signal => signal.value).foreach(smellValue => print(f"$smellValue%5.1f "))
+//              println()
+//            }
+//            println()
+//          }
 //          println()
 //        }
-//        println()
 //      }
-//      println()
+//      Thread.sleep(300)
 //    }
   }
 
   def initialMockCoordinatesFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {
     direction match {
-      case TopLeft => Array((0, 0))
-      case Top => Array.range(1, config.gridSize - 1).map(num => (0, num))
-      case TopRight => Array((0, config.gridSize - 1))
+      case Direction.TopLeft => Array((0, 0))
+      case Direction.Top => Array.range(1, config.gridSize - 1).map(num => (0, num))
+      case Direction.TopRight => Array((0, config.gridSize - 1))
       case Direction.Left => Array.range(1, config.gridSize - 1).map(num => (num, 0))
       case Direction.Right => Array.range(1, config.gridSize - 1).map(num => (num, config.gridSize - 1))
-      case BottomLeft => Array((config.gridSize - 1, 0))
-      case Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 1, num))
-      case BottomRight => Array((config.gridSize - 1, config.gridSize - 1))
+      case Direction.BottomLeft => Array((config.gridSize - 1, 0))
+      case Direction.Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 1, num))
+      case Direction.BottomRight => Array((config.gridSize - 1, config.gridSize - 1))
     }
   }
 }

@@ -10,6 +10,7 @@ import pl.edu.agh.xinuk.gui.GuiActor.GridInfo
 import pl.edu.agh.xinuk.model.Grid.CellArray
 import pl.edu.agh.xinuk.model._
 import pl.edu.agh.xinuk.model.parallel.{ConflictResolver, Neighbour}
+import pl.edu.agh.xinuk.utils.Direction
 
 import scala.collection.immutable.TreeSet
 import scala.collection.mutable
@@ -69,22 +70,22 @@ class WorkerActor[ConfigType <: XinukConfig](
       self ! StartIteration(1)
     case StartIteration(1) =>
       val (newGrid, newMetrics, transitionsThroughWorker) = movesController.initialGrid(workerID = this.id)
-      (1 to math.pow(config.workersRoot, 2).toInt)
-        .map(WorkerId).foreach(workerId => {
-          regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[(Any, Any), Boolean]])
-        })
       this.grid = newGrid
       logMetrics(1, newMetrics)
       guiActors.foreach(_ ! GridInfo(1, grid, newMetrics))
-      propagateSignal()
-      notifyNeighbours(1, grid)
-      unstashAll()
+      (1 to math.pow(config.workersRoot, 2).toInt)
+        .map(WorkerId).foreach(workerId => {
+          regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[Int, Map[Direction.Value, List[Direction.Value]]]])
+        })
     case _: IterationPartFinished =>
       stash()
     case TransitionsThroughWorker(from, to, transitions) => {
-      println(from, to)
       movesController.receiveMessage((from.value, transitions))
       receivedMessages += 1
+
+      propagateSignal()
+      notifyNeighbours(1, grid)
+      unstashAll()
       if (receivedMessages == math.pow(config.workersRoot, 2).toInt) {
         context.become(started)
       }
@@ -195,7 +196,7 @@ object WorkerActor {
 
   final case class IterationPartMetrics private(workerId: WorkerId, iteration: Long, metrics: Metrics)
 
-  final case class TransitionsThroughWorker private(from: WorkerId, to: WorkerId,  transitions: Map[(Any, Any), Boolean])
+  final case class TransitionsThroughWorker private(from: WorkerId, to: WorkerId,  transitions: Map[Int, Map[Direction.Value, List[Direction.Value]]])
 
   def props[ConfigType <: XinukConfig](
                                         regionRef: => ActorRef,

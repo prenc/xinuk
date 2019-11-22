@@ -4,9 +4,14 @@ import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model._
 
-
-//TODO : Refactor "Mock" name
-final case class MockCell(smell: SmellArray, crowd: List[MockCell], var destinationPoint: LocalPoint, workerId: WorkerId) extends SmellingCell {
+final case class MockCell(
+                           smell: SmellArray,
+                           crowd: List[MockCell],
+                           var destinationPoint: LocalPoint,
+                           var routeThroughWorkers: List[Int],
+                           var routeToDestination: List[(Int, Int)],
+                           workerId: WorkerId
+                         ) extends SmellingCell {
 
   override type Self = MockCell
 
@@ -14,12 +19,19 @@ final case class MockCell(smell: SmellArray, crowd: List[MockCell], var destinat
 }
 
 object MockCell {
-  def create(initialSignal: Signal, initialCrowd: List[MockCell] = List(), destinationPoint: LocalPoint, workerId: WorkerId): MockCell =
-    MockCell(Array.fill(Cell.Size, Cell.Size)(initialSignal), initialCrowd, destinationPoint, workerId)
+  def create(
+              initialSignal: Signal,
+              initialCrowd: List[MockCell] = List(),
+              destinationPoint: LocalPoint,
+              routeThroughWorkers: List[Int] = List(),
+              routeToDestination: List[(Int, Int)] = List(),
+              workerId: WorkerId
+            ): MockCell =
+    MockCell(Array.fill(Cell.Size, Cell.Size)(initialSignal), initialCrowd, destinationPoint, routeThroughWorkers, routeToDestination, workerId)
 }
 
 trait MockAccessible[+T <: GridPart] {
-  def withMock(crowd: List[MockCell], destinationPoint: LocalPoint, workerId: WorkerId): T
+  def withMock(crowd: List[MockCell], destinationPoint: LocalPoint, routeThroughWorkers: List[Int], routeToDestination: List[(Int, Int)], workerId: WorkerId): T
 }
 
 object MockAccessible {
@@ -28,12 +40,16 @@ object MockAccessible {
       override def withMock(
                              crowd: List[MockCell],
                              destinationPoint: LocalPoint,
+                             routeThroughWorkers: List[Int],
+                             routeToDestination: List[(Int, Int)],
                              workerId: WorkerId
                            ): MockCell =
         MockCell(
           arg.smellWith(config.mockInitialSignal),
           crowd,
           destinationPoint,
+          routeThroughWorkers,
+          routeToDestination,
           workerId
         )
     }
@@ -43,12 +59,16 @@ object MockAccessible {
       override def withMock(
                              crowd: List[MockCell],
                              destinationPoint: LocalPoint,
+                             routeThroughWorkers: List[Int],
+                             routeToDestination: List[(Int, Int)],
                              workerId: WorkerId
                            ): BufferCell =
         BufferCell(MockCell(
           arg.smellWith(config.mockInitialSignal),
           crowd,
           destinationPoint,
+          routeThroughWorkers,
+          routeToDestination,
           workerId
         ))
     }
