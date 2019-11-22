@@ -4,7 +4,7 @@ import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model.{LocalPoint, MockCell}
 import pl.edu.agh.mock.utlis.Direction.{Bottom, BottomLeft, BottomRight, Top, TopLeft, TopRight}
 import pl.edu.agh.xinuk.model.Cell.SmellArray
-import pl.edu.agh.xinuk.model.{Grid, InitSmellPropagation, Obstacle, Signal}
+import pl.edu.agh.xinuk.model.{BufferCell, Grid, InitSmellPropagation, Obstacle, Signal}
 
 import scala.collection.mutable.ListBuffer
 
@@ -25,7 +25,7 @@ object Direction extends Enumeration {
   }
 }
 
-class AlgorithmUtils {
+class AlgorithmUtils(val workerId: Int) {
   type DirectionalSmellArray = Array[Array[SmellArray]]
 
   var directionalSmell: Map[Direction.Value, DirectionalSmellArray] = Map[Direction.Value, DirectionalSmellArray]()
@@ -38,6 +38,10 @@ class AlgorithmUtils {
       transitions += (direction -> transitionsThroughThisWorker.apply(direction).toList)
     }
     transitions
+  }
+
+  def getDirectionalSmell(): Map[Direction.Value, DirectionalSmellArray] = {
+    directionalSmell
   }
 
   def initializeEmptyListsForTransitions(): Unit = {
@@ -122,16 +126,21 @@ class AlgorithmUtils {
       x <- 0 until config.gridSize;
       y <- 0 until config.gridSize
     ) {
-      newGrid.cells(x)(y) = grid.cells(x)(y)
+      if (grid.cells(x)(y).isInstanceOf[BufferCell]) {
+        newGrid.cells(x)(y) = Obstacle
+      } else {
+        newGrid.cells(x)(y) = grid.cells(x)(y)
+      }
+
     }
 
     val coordinates = initialMockCoordinatesFor(direction)
 
     for (coordinate <- coordinates) {
-      newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), grid.workerId)
+      newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), List[Int](), List[(Int, Int)](), grid.workerId)
     }
 
-    (0 until config.gridSize*2).foreach { _ =>
+    (0 until config.gridSize).foreach { _ =>
       val cells = Array.tabulate(config.gridSize, config.gridSize)((x, y) =>
         newGrid.propagatedSignal(InitSmellPropagation.calculateSmellAddends, x, y)
       )
@@ -146,18 +155,23 @@ class AlgorithmUtils {
 
 //  Printing directional signal for debugging purposes
 
-//    println()
-//    println(direction.toString())
-//    println()
-//    for (arrayOfArraysOfSmell <- directionalSmell(direction)) {
-//      for (arrayOfSmell <- arrayOfArraysOfSmell) {
-//        for (smell <- arrayOfSmell) {
-//          smell.map(signal => signal.value).foreach(smellValue => print(f"$smellValue%5.1f "))
+//    for (i <- 0 to math.pow(config.workersRoot, 2).toInt) {
+//      if (workerId == i) {
+//        println()
+//        println(direction.toString())
+//        println(workerId)
+//        for (arrayOfArraysOfSmell <- directionalSmell(direction)) {
+//          for (arrayOfSmell <- arrayOfArraysOfSmell) {
+//            for (smell <- arrayOfSmell) {
+//              smell.map(signal => signal.value).foreach(smellValue => print(f"$smellValue%5.1f "))
+//              println()
+//            }
+//            println()
+//          }
 //          println()
 //        }
-//        println()
 //      }
-//      println()
+//      Thread.sleep(300)
 //    }
   }
 

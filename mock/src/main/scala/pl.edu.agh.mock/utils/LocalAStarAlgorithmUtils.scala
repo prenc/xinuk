@@ -5,7 +5,7 @@ import pl.edu.agh.xinuk.model.{Grid, Obstacle}
 
 import scala.collection.mutable.ListBuffer
 
-object AStartAlgorithmUtils {
+object LocalAStarAlgorithmUtils {
 
   def aStar(start: (Int, Int), goal: (Int, Int), grid: Grid)(implicit config: MockConfig): List[(Int, Int)] = {
     var openSet: Set[(Int, Int)] = Set[(Int, Int)]()
@@ -22,7 +22,7 @@ object AStartAlgorithmUtils {
     while (openSet.nonEmpty) {
       val current = nodeWithLowestFScoreValue(openSet, fScore)
       if(current == goal) {
-        return reconstructPath(cameFrom, current)
+        return reconstructPath(cameFrom, current, goal)
       }
       openSet -= current
 
@@ -52,14 +52,15 @@ object AStartAlgorithmUtils {
     openSet.map(openEntry => (openEntry, fScore(openEntry))).minBy(_._2)._1
   }
 
-  def reconstructPath(cameFrom: Map[(Int, Int), (Int, Int)], current: (Int, Int)): List[(Int, Int)] = {
+  def reconstructPath(cameFrom: Map[(Int, Int), (Int, Int)], current: (Int, Int), goal: (Int,Int)): List[(Int, Int)] = {
     var currentNode: (Int, Int) = current
     val totalPath = ListBuffer[(Int, Int)]()
     while (cameFrom.contains(currentNode)) {
       currentNode = cameFrom.apply(currentNode)
       totalPath.prepend(currentNode)
     }
-    totalPath.toList
+    totalPath.append(goal)
+    totalPath.tail.toList
   }
 
   def neighbours(node: (Int, Int),  grid: Grid)(implicit config: MockConfig): List[(Int, Int)] = {

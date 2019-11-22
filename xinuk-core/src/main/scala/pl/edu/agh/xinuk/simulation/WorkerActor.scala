@@ -69,22 +69,22 @@ class WorkerActor[ConfigType <: XinukConfig](
       self ! StartIteration(1)
     case StartIteration(1) =>
       val (newGrid, newMetrics, transitionsThroughWorker) = movesController.initialGrid(workerID = this.id)
+      this.grid = newGrid
+      logMetrics(1, newMetrics)
+      guiActors.foreach(_ ! GridInfo(1, grid, newMetrics))
       (1 to math.pow(config.workersRoot, 2).toInt)
         .map(WorkerId).foreach(workerId => {
           regionRef ! TransitionsThroughWorker(id, workerId, transitionsThroughWorker.asInstanceOf[Map[Any, List[Any]]])
         })
-      this.grid = newGrid
-      logMetrics(1, newMetrics)
-      guiActors.foreach(_ ! GridInfo(1, grid, newMetrics))
-      propagateSignal()
-      notifyNeighbours(1, grid)
-      unstashAll()
     case _: IterationPartFinished =>
       stash()
     case TransitionsThroughWorker(from, to, transitions) => {
-      println(from, to)
       movesController.receiveMessage((from.value, transitions))
       receivedMessages += 1
+
+      propagateSignal()
+      notifyNeighbours(1, grid)
+      unstashAll()
       if (receivedMessages == math.pow(config.workersRoot, 2).toInt) {
         context.become(started)
       }
