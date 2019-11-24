@@ -104,7 +104,7 @@ class AlgorithmUtils(val workerId: Int) {
   }
 
   def mapDistances(grid: Grid, direction: Direction.Value)(implicit config: MockConfig): Unit = {
-    var newGrid: Grid = Grid.empty(Set())
+    var newGrid: Grid = Grid.empty(Set(), workerId = grid.workerId)
 
     for (
       x <- 0 until config.gridSize;
@@ -125,7 +125,7 @@ class AlgorithmUtils(val workerId: Int) {
         newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)]()), grid.workerId)
     }
 
-    (0 until (config.gridSize*2).toInt).foreach { _ =>
+    (0 until (config.gridSize*2)).foreach { _ =>
       val cells = Array.tabulate(config.gridSize, config.gridSize)((x, y) =>
         newGrid.propagatedSignal(InitSmellPropagation.calculateSmellAddends, x, y)
       )

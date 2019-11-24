@@ -15,7 +15,6 @@ object POIFactory {
     val yDestination = random.nextInt(config.gridSize - 2) + 1
     val destinationWorkerId = random.nextInt(pow(config.workersRoot,2).intValue()) + 1
 
-//    println(xDestination, yDestination, destinationWorkerId)
     LocalPoint(xDestination, yDestination, WorkerId(destinationWorkerId))
   }
 }

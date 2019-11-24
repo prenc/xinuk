@@ -69,8 +69,6 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
       grid.cells(config.gridSize / 2)(config.gridSize / 2) = mock
     }
 
-    Thread.sleep(300)
-
     val metrics = MockMetrics.empty()
     println("Grid initialized")
     (grid, metrics, algorithmUtils.getTransitionsThroughThisWorker())
@@ -140,7 +138,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               } catch {
                 case e: Exception => {
                   println("Exception: ", workerId, nextWorker, occupiedCell.routes.routeThroughWorkers)
-
+                  setGlobalRoute(occupiedCell, workerId, occupiedCell.destinationPoint.workerId.value, x, y)
                 }
               }
             }
