@@ -1,6 +1,7 @@
 package pl.edu.agh.mock.utlis
 
 import pl.edu.agh.mock.config.MockConfig
+import pl.edu.agh.mock.model.parallel.MockRoutes
 import pl.edu.agh.mock.model.{LocalPoint, MockCell}
 import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model.{BufferCell, Grid, InitSmellPropagation, Obstacle, Signal}
@@ -110,7 +111,7 @@ class AlgorithmUtils(val workerId: Int) {
       y <- 0 until config.gridSize
     ) {
       if (grid.cells(x)(y).isInstanceOf[BufferCell]) {
-        newGrid.cells(x)(y) = Obstacle
+        newGrid.cells(x)(y) = Obstacle()
       } else {
         newGrid.cells(x)(y) = grid.cells(x)(y)
       }
@@ -120,10 +121,11 @@ class AlgorithmUtils(val workerId: Int) {
     val coordinates = initialMockCoordinatesFor(direction)
 
     for (coordinate <- coordinates) {
-      newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), List[Int](), List[(Int, Int)](), grid.workerId)
+      if (grid.cells(coordinate._1)(coordinate._2) != Obstacle())
+        newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)]()), grid.workerId)
     }
 
-    (0 until config.gridSize).foreach { _ =>
+    (0 until (config.gridSize*2).toInt).foreach { _ =>
       val cells = Array.tabulate(config.gridSize, config.gridSize)((x, y) =>
         newGrid.propagatedSignal(InitSmellPropagation.calculateSmellAddends, x, y)
       )
@@ -161,12 +163,12 @@ class AlgorithmUtils(val workerId: Int) {
   def initialMockCoordinatesFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {
     direction match {
       case Direction.TopLeft => Array((0, 0))
-      case Direction.Top => Array.range(1, config.gridSize - 1).map(num => (0, num))
+      case Direction.Top => Array.range(1, config.gridSize - 1, (config.gridSize / 10).toInt).map(num => (0, num))
       case Direction.TopRight => Array((0, config.gridSize - 1))
-      case Direction.Left => Array.range(1, config.gridSize - 1).map(num => (num, 0))
-      case Direction.Right => Array.range(1, config.gridSize - 1).map(num => (num, config.gridSize - 1))
+      case Direction.Left => Array.range(1, config.gridSize - 1, (config.gridSize / 10).toInt).map(num => (num, 0))
+      case Direction.Right => Array.range(1, config.gridSize - 1, (config.gridSize / 10).toInt).map(num => (num, config.gridSize - 1))
       case Direction.BottomLeft => Array((config.gridSize - 1, 0))
-      case Direction.Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 1, num))
+      case Direction.Bottom => Array.range(1, config.gridSize - 1, (config.gridSize / 10).toInt).map(num => (config.gridSize - 1, num))
       case Direction.BottomRight => Array((config.gridSize - 1, config.gridSize - 1))
     }
   }

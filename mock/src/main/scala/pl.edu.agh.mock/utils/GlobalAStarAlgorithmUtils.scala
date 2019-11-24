@@ -24,7 +24,7 @@ object GlobalAStarAlgorithmUtils {
     differenceCoordinates()
       .filter(x => !(x._1 == 0 && x._2 == 0))
       .map(x => (x._1 + coordinates._1, x._2 + coordinates._2))
-      .filter(x => !(x._1 < 0 || x._2 < 0 || x._1 > config.workersRoot || x._2 > config.workersRoot))
+      .filter(x => !(x._1 < 0 || x._2 < 0 || x._1 > config.workersRoot - 1 || x._2 > config.workersRoot - 1))
       .map(coordinate => workerIdOfCoordinates(coordinate._1, coordinate._2))
   }
 
@@ -180,6 +180,7 @@ object GlobalAStarAlgorithmUtils {
   def reconstructPath(cameFrom: Map[Int, Int], current: Int, goal: Int): List[Int] = {
     var currentNode: Int = current
     val totalPath = ListBuffer[Int]()
+
     while (cameFrom.contains(currentNode)) {
       currentNode = cameFrom.apply(currentNode)
       totalPath.prepend(currentNode)
@@ -189,7 +190,14 @@ object GlobalAStarAlgorithmUtils {
     totalPath.tail.toList
   }
 
-  def distance(current: Int, neighbour: Int): Double = {
-    1.0
+  def distance(current: Int, neighbour: Int)(implicit config: MockConfig): Double = {
+    val currentCoordinates = coordinatesOfWorkerId(current)
+    val neighbourCoordinates = coordinatesOfWorkerId(neighbour)
+    val difference = (currentCoordinates._1 - neighbourCoordinates._1, currentCoordinates._2 - neighbourCoordinates._2)
+    if (difference._1 == 0 || difference._2 == 0) {
+      1.0
+    } else {
+      1.41421
+    }
   }
 }

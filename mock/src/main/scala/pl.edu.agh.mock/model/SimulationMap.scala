@@ -9,7 +9,7 @@ final case class SimulationMap(size: Int, title: String, tiles: List[Tile]) {
 
     tiles.foreach(tile => array(tile.row)(tile.column) = tile.tileType match {
       case TileType.Empty => EmptyCell.Instance
-      case TileType.Obstacle => Obstacle
+      case TileType.Obstacle => Obstacle()
     })
 
     array

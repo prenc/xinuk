@@ -38,8 +38,8 @@ object SmellUtils{
         newGrid.cells(point._1)(point._2) match {
           case EmptyCell(_) => true
           case BufferCell(EmptyCell(_)) => true
-          case BufferCell(MockCell(_,_,_,_,_,_)) => true
-          case MockCell(_,_,_,_,_,_) => true
+          case BufferCell(MockCell(_,_,_,_,_)) => true
+          case MockCell(_,_,_,_,_) => true
           case _ => false
         }
     })
