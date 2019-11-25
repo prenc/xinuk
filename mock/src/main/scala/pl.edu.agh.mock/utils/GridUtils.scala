@@ -15,10 +15,6 @@ object GridUtils extends LazyLogging{
     for (i <- 0 until config.gridSize; j <- 0 until config.gridSize) {
       grid.cells(i)(j) match {
         case EmptyCell.Instance => grid.cells(i)(j) = gridArray(i + xOffset)(j + yOffset)
-        case BufferCell(EmptyCell(_)) =>
-          if (gridArray(i + xOffset)(j + yOffset).isInstanceOf[Obstacle]) {
-            grid.cells(i)(j) = Obstacle()
-          }
         case _ =>
       }
     }
@@ -56,8 +52,8 @@ object GridUtils extends LazyLogging{
 
     // Update left buffer zone
     if (yOffset > 0) {
-      for (i <- 0 until config.gridSize; j <- 2 to 1 by -1) {
-        gridArray(xOffset + i)(yOffset - j) match {
+      for (i <- 0 until config.gridSize) {
+        gridArray(xOffset + i)(yOffset - 2) match {
           case Obstacle() => grid.cells(i)(0) = Obstacle()
           case _ =>
         }
@@ -66,8 +62,8 @@ object GridUtils extends LazyLogging{
 
     // Update top buffer zone
     if (xOffset > 0) {
-      for (i <- 0 until config.gridSize; j <- 2 to 1 by -1) {
-        gridArray(xOffset - j)(yOffset + i) match {
+      for (i <- 0 until config.gridSize) {
+        gridArray(xOffset - 2)(yOffset + i) match {
           case Obstacle() => grid.cells(0)(i) = Obstacle()
           case _ =>
         }
@@ -76,8 +72,8 @@ object GridUtils extends LazyLogging{
 
     //Update right buffer zone
     if (grid.workerId.value % config.workersRoot != 0) {
-      for (i <- 0 until config.gridSize; j <- 0 to 1) {
-        gridArray(xOffset + i)(yOffset + config.gridSize + j) match {
+      for (i <- 0 until config.gridSize) {
+        gridArray(xOffset + i)(yOffset + config.gridSize + 1) match {
           case Obstacle() => grid.cells(i)(config.gridSize - 1) = Obstacle()
           case _ =>
         }
@@ -86,8 +82,8 @@ object GridUtils extends LazyLogging{
 
     //Update bottom buffer zone
     if (grid.workerId.value <= (Math.pow(config.workersRoot, 2) - config.workersRoot)) {
-      for (i <- 0 until config.gridSize; j <- 0 to 1) {
-        gridArray(xOffset + config.gridSize + j)(yOffset + i) match {
+      for (i <- 0 until config.gridSize) {
+        gridArray(xOffset + config.gridSize + 1)(yOffset + i) match {
           case Obstacle() => grid.cells(config.gridSize - 1)(i) = Obstacle()
           case _ =>
         }
