@@ -10,7 +10,9 @@ import pl.edu.agh.xinuk.algorithm.MovesController
 import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model.{Obstacle, _}
 import pl.edu.agh.xinuk.utils.Direction
+
 import scala.collection.immutable.TreeSet
+import scala.util.Random
 
 final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config: MockConfig) extends MovesController {
   var crowdOnProcessor = 0
@@ -28,31 +30,37 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   override def initialGrid(workerId: WorkerId): (Grid, MockMetrics, Map[Direction.Value, List[Direction.Value]]) = {
     this.workerId = workerId.value
+    println(this.workerId)
     algorithmUtils = new AlgorithmUtils(this.workerId)
 
     val grid = Grid.empty(bufferZone, workerId = workerId)
 
 //    GridUtils.loadDataFromFile("map.json", grid)
+
+    if ( workerId.value == 5) {
+      grid.cells(0)(5) = Obstacle()
+    }
+
 //    if (workerId.value == 1) {
-//      grid.cells(1)(5) = Obstacle
-//      grid.cells(2)(5) = Obstacle
-//      grid.cells(3)(5) = Obstacle
-//      grid.cells(4)(5) = Obstacle
-//      grid.cells(5)(5) = Obstacle
-//      grid.cells(6)(5) = Obstacle
-//      grid.cells(7)(5) = Obstacle
-//      grid.cells(8)(5) = Obstacle
-//      grid.cells(9)(5) = Obstacle
+//      grid.cells(1)(5) = Obstacle()
+//      grid.cells(2)(5) = Obstacle()
+//      grid.cells(3)(5) = Obstacle()
+//      grid.cells(4)(5) = Obstacle()
+//      grid.cells(5)(5) = Obstacle()
+//      grid.cells(6)(5) = Obstacle()
+//      grid.cells(7)(5) = Obstacle()
+//      grid.cells(8)(5) = Obstacle()
+//      grid.cells(9)(5) = Obstacle()
 //
-//      grid.cells(14)(11) = Obstacle
-////      grid.cells(13)(11) = Obstacle
-//      grid.cells(12)(11) = Obstacle
-//      grid.cells(11)(11) = Obstacle
-//      grid.cells(10)(11) = Obstacle
-//      grid.cells(9)(11) = Obstacle
-//      grid.cells(8)(11) = Obstacle
-//      grid.cells(7)(11) = Obstacle
-//      grid.cells(6)(11) = Obstacle
+//      grid.cells(14)(11) = Obstacle()
+////      grid.cells(13)(11) = Obstacle()
+//      grid.cells(12)(11) = Obstacle()
+//      grid.cells(11)(11) = Obstacle()
+//      grid.cells(10)(11) = Obstacle()
+//      grid.cells(9)(11) = Obstacle()
+//      grid.cells(8)(11) = Obstacle()
+//      grid.cells(7)(11) = Obstacle()
+//      grid.cells(6)(11) = Obstacle()
 //    }
 
     algorithmUtils.mapLocalDistancesForEveryDirection(grid)
@@ -60,13 +68,14 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
     algorithmUtils.mapTransitionsThroughThisWorker(grid)
 
-    if (grid.cells(config.gridSize / 2)(config.gridSize / 2).isInstanceOf[EmptyCell] && workerId.value == 2) {
+    val placeForMock = (config.gridSize / 2, config.gridSize / 2)
+    if (grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell] && workerId.value == 1) {
       val mock = MockCell.create(
         config.mockInitialSignal,
-        destinationPoint = POIFactory.generatePOI(grid),
+        destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId),
         workerId = grid.workerId
       )
-      grid.cells(config.gridSize / 2)(config.gridSize / 2) = mock
+      grid.cells(placeForMock._1)(placeForMock._2) = mock
     }
 
     val metrics = MockMetrics.empty()
@@ -96,7 +105,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
   override def makeMoves(iteration: Long, grid: Grid): (Grid, MockMetrics) = {
 
     val newGrid = Grid.empty(bufferZone, workerId = grid.workerId)
-    Thread.sleep(300)
+//    Thread.sleep(50)
 
     def copyCells(x: Int, y: Int, cell: GridPart): Unit = {
       newGrid.cells(x)(y) = cell
@@ -105,10 +114,23 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     def moveCells(x: Int, y: Int, cell: GridPart): Unit = {
 
       def makeMockMove(occupiedCell: MockCell): Unit = {
-        var point = (0, 0)
-        if (x != 0 && y != 0 && x != config.gridSize && y != config.gridSize)
-          while (occupiedCell.destinationPoint == LocalPoint(x, y, WorkerId(workerId)) || !isDestinationPointAccessible(grid, occupiedCell)) {
-            occupiedCell.destinationPoint = POIFactory.generatePOI(grid)
+        val differences = (0, 0)
+        var point = (x + differences._1, y + differences._2)
+
+        if (x != 0 && y != 0 && x != config.gridSize && y != config.gridSize) {
+          while (
+            (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId)
+            || !isDestinationPointAccessible(grid, occupiedCell)
+          ) {
+            if (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId) {
+              println(occupiedCell.destinationPoint.currentDistance, occupiedCell.destinationPoint.distanceInStraightLine)
+              if (occupiedCell.destinationPoint.currentDistance < occupiedCell.destinationPoint.distanceInStraightLine) {
+                throw new Exception("Calculation of current distance works bad")
+              }
+            }
+            occupiedCell.routes.routeThroughWorkers = List[Int]()
+            occupiedCell.routes.routeToDestination = List[(Int, Int)]()
+            occupiedCell.destinationPoint = POIFactory.generatePOI(grid, x, y, WorkerId(workerId))
           }
 
           if (occupiedCell.routes.routeThroughWorkers.isEmpty && occupiedCell.destinationPoint.workerId.value != workerId) {
@@ -119,10 +141,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             setLocalRoute(occupiedCell, x, y, grid)
           }
 
-
-
           if (occupiedCell.destinationPoint.workerId.value == workerId) {
-            val head::tail = occupiedCell.routes.routeToDestination
+            val head :: tail = occupiedCell.routes.routeToDestination
             occupiedCell.routes.routeToDestination = tail
             point = head
           } else {
@@ -133,8 +153,13 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               try {
                 val direction = GlobalAStarAlgorithmUtils.directionValueFromWorkerIds(workerId, nextWorker)
                 val smellArray = directionalSmell.apply(direction)(x - 1)(y - 1)
-                val directionDifference = GlobalAStarAlgorithmUtils.coordinatesDifferencesListFromSmellArray(smellArray).head
-                point = (x + directionDifference._1, y + directionDifference._2)
+                var coordinates =  GlobalAStarAlgorithmUtils.coordinatesDifferencesListFromSmellArray(smellArray)
+                do {
+                  val directionDifference = coordinates.head
+                  coordinates = coordinates.tail
+                  point = (x + directionDifference._1, y + directionDifference._2)
+                } while (newGrid.cells(point._1)(point._2) == Obstacle())
+
               } catch {
                 case e: Exception => {
                   println("Exception: ", workerId, nextWorker, occupiedCell.routes.routeThroughWorkers)
@@ -143,9 +168,24 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               }
             }
           }
+        }
 
         val destination = point
         val vacatedCell = EmptyCell(cell.smell)
+
+        if (destination._1 != x || destination._2 != y) {
+          if (destination._1 - x == 0 || destination._2 - y == 0) {
+            if (isOnBufferZone(destination)) {
+              occupiedCell.destinationPoint.addStraightMoveToCurrentDistance()
+            }
+            occupiedCell.destinationPoint.addStraightMoveToCurrentDistance()
+          } else {
+            if (isOnBufferZone(destination)) {
+              occupiedCell.destinationPoint.addInclinedMoveToCurrentDistance()
+            }
+            occupiedCell.destinationPoint.addInclinedMoveToCurrentDistance()
+          }
+        }
 
         newGrid.cells(destination._1)(destination._2) match {
           case EmptyCell(_) =>
@@ -200,6 +240,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               )
 
             crowdOnProcessor += 1
+            throw new Exception("c")
 
           case another@MockCell(_, anotherCrowd, _, _, _) =>
             newGrid.cells(x)(y) = newGrid.cells(x)(y) match {
@@ -339,6 +380,19 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
       case Obstacle() => false
       case _ => true
     }
+  }
+
+  def isPointAccessible(grid: Grid, point: (Int, Int)): Boolean = {
+    if (point._1 < 0 || point._2 < 0 || point._1 >= config.gridSize || point._2 >= config.gridSize)
+      return false
+    grid.cells(point._1)(point._2) match {
+      case Obstacle() => false
+      case _ => true
+    }
+  }
+
+  def isOnBufferZone(point: (Int, Int)): Boolean = {
+    point._1 == config.gridSize - 1 || point._2 == config.gridSize - 1 || point._1 == 0 || point._2 == 0
   }
 
 

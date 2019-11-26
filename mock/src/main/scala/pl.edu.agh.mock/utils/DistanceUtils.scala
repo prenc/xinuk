@@ -5,6 +5,7 @@ import pl.edu.agh.mock.model.{LocalPoint, MockCell, Point}
 import pl.edu.agh.xinuk.model.{BufferCell, EmptyCell, Grid}
 
 object DistanceUtils  {
+
   def calculateDistance(firstPoint: LocalPoint, secondPoint: LocalPoint)(implicit config: MockConfig): Double = {
     val startingPoint = calculateGlobalPosition(firstPoint)
     val destinationPoint = calculateGlobalPosition(secondPoint)
