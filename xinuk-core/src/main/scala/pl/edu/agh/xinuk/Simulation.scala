@@ -76,9 +76,13 @@ class Simulation[ConfigType <: XinukConfig : ValueReader](
         if (config.guiType != GuiType.None) {
           system.actorOf(GuiActor.props(workerRegionRef, id, cellToColor))
         }
+
         val neighbours: Vector[Neighbour] = NeighbourPosition.values.flatMap { pos =>
           pos.neighbourId(id).map(_ => Neighbour(pos))
         }(collection.breakOut)
+
+        NeighbourPosition.values.flatMap{ pos => pos.neighbourId(id)}(collection.breakOut).foreach(x => println(id,x))
+
         workerRegionRef ! WorkerActor.NeighboursInitialized(id, neighbours)
       }
     }

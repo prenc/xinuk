@@ -27,25 +27,25 @@ object GridUtils extends LazyLogging{
     for (i <- 0 until config.gridSize) {
       //Left side
       grid.cells(i)(1) match {
-        case Obstacle => grid.cells(i)(0) = Obstacle
+        case Obstacle() => grid.cells(i)(0) = Obstacle()
         case _ =>
       }
 
       //Right side
       grid.cells(i)(config.gridSize - 2) match {
-        case Obstacle => grid.cells(i)(config.gridSize - 1) = Obstacle
+        case Obstacle() => grid.cells(i)(config.gridSize - 1) = Obstacle()
         case _ =>
       }
 
       //Top
       grid.cells(1)(i) match {
-        case Obstacle => grid.cells(0)(i) = Obstacle
+        case Obstacle() => grid.cells(0)(i) = Obstacle()
         case _ =>
       }
 
       //Bottom
       grid.cells(config.gridSize - 2)(i) match {
-        case Obstacle => grid.cells(config.gridSize - 1)(i) = Obstacle
+        case Obstacle() => grid.cells(config.gridSize - 1)(i) = Obstacle()
         case _ =>
       }
     }
@@ -54,7 +54,7 @@ object GridUtils extends LazyLogging{
     if (yOffset > 0) {
       for (i <- 0 until config.gridSize) {
         gridArray(xOffset + i)(yOffset - 2) match {
-          case Obstacle => grid.cells(i)(0) = Obstacle
+          case Obstacle() => grid.cells(i)(0) = Obstacle()
           case _ =>
         }
       }
@@ -64,7 +64,7 @@ object GridUtils extends LazyLogging{
     if (xOffset > 0) {
       for (i <- 0 until config.gridSize) {
         gridArray(xOffset - 2)(yOffset + i) match {
-          case Obstacle => grid.cells(0)(i) = Obstacle
+          case Obstacle() => grid.cells(0)(i) = Obstacle()
           case _ =>
         }
       }
@@ -74,7 +74,7 @@ object GridUtils extends LazyLogging{
     if (grid.workerId.value % config.workersRoot != 0) {
       for (i <- 0 until config.gridSize) {
         gridArray(xOffset + i)(yOffset + config.gridSize + 1) match {
-          case Obstacle => grid.cells(i)(config.gridSize - 1) = Obstacle
+          case Obstacle() => grid.cells(i)(config.gridSize - 1) = Obstacle()
           case _ =>
         }
       }
@@ -84,7 +84,7 @@ object GridUtils extends LazyLogging{
     if (grid.workerId.value <= (Math.pow(config.workersRoot, 2) - config.workersRoot)) {
       for (i <- 0 until config.gridSize) {
         gridArray(xOffset + config.gridSize + 1)(yOffset + i) match {
-          case Obstacle => grid.cells(config.gridSize - 1)(i) = Obstacle
+          case Obstacle() => grid.cells(config.gridSize - 1)(i) = Obstacle()
           case _ =>
         }
       }

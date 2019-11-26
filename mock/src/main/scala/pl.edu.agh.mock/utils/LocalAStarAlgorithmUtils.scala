@@ -69,12 +69,17 @@ object LocalAStarAlgorithmUtils {
     val neighbourCoordinates = everyWithEvery
       .filter(x => !(x._1 == 0 && x._2 == 0))
       .map(x => (x._1 + node._1, x._2 + node._2))
-      .filter(x => !(x._1 < 0 || x._2 < 0 || x._1 > config.gridSize || x._2 > config.gridSize))
-      .filter(coordinates => grid.cells(coordinates._1)(coordinates._2) != Obstacle)
+      .filter(x => !(x._1 < 0 || x._2 < 0 || x._1 > config.gridSize - 1 || x._2 > config.gridSize - 1))
+      .filter(coordinates => grid.cells(coordinates._1)(coordinates._2) != Obstacle())
     neighbourCoordinates
   }
 
   def distance(current: (Int, Int), neighbour: (Int, Int)): Double = {
-    1.0
+    val difference = (current._1 - neighbour._1, current._2 - neighbour._2)
+    if (difference._1 == 0 || difference._2 == 0) {
+      1.0
+    } else {
+      1.41421
+    }
   }
 }

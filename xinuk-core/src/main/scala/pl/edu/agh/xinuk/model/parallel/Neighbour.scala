@@ -4,7 +4,6 @@ import com.avsystem.commons.SharedExtensions._
 import com.avsystem.commons.misc.{Opt, SealedEnumCompanion}
 import pl.edu.agh.xinuk.config.XinukConfig
 import pl.edu.agh.xinuk.model.WorkerId
-
 import scala.collection.immutable.TreeSet
 
 
