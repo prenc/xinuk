@@ -30,7 +30,6 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   override def initialGrid(workerId: WorkerId): (Grid, MockMetrics, Map[Direction.Value, List[Direction.Value]]) = {
     this.workerId = workerId.value
-    println(this.workerId)
     algorithmUtils = new AlgorithmUtils(this.workerId)
 
     val grid = Grid.empty(bufferZone, workerId = workerId)
@@ -79,7 +78,6 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     }
 
     val metrics = MockMetrics.empty()
-    println("Grid initialized")
     (grid, metrics, algorithmUtils.getTransitionsThroughThisWorker())
   }
 
@@ -104,8 +102,11 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   override def makeMoves(iteration: Long, grid: Grid): (Grid, MockMetrics) = {
 
+    if (workerId == 0) {
+      workerId = grid.workerId.value
+    }
+
     val newGrid = Grid.empty(bufferZone, workerId = grid.workerId)
-//    Thread.sleep(50)
 
     def copyCells(x: Int, y: Int, cell: GridPart): Unit = {
       newGrid.cells(x)(y) = cell
@@ -123,7 +124,6 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             || !isDestinationPointAccessible(grid, occupiedCell)
           ) {
             if (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId) {
-              println(occupiedCell.destinationPoint.currentDistance, occupiedCell.destinationPoint.distanceInStraightLine)
               if (occupiedCell.destinationPoint.currentDistance < occupiedCell.destinationPoint.distanceInStraightLine) {
                 throw new Exception("Calculation of current distance works bad")
               }

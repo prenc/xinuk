@@ -63,7 +63,6 @@ class WorkerActor[ConfigType <: XinukConfig](
       this.id = id
       this.logger = LoggerFactory.getLogger(id.value.toString)
       this.neighbours = neighbours.mkMap(_.position.neighbourId(id).get, identity)
-      println(id, neighbours)
       this.bufferZone = neighbours.foldLeft(TreeSet.empty[(Int, Int)])((builder, neighbour) => builder | neighbour.position.bufferZone)
       this.movesController = movesControllerFactory(bufferZone, config)
       grid = Grid.empty(bufferZone, workerId = this.id)

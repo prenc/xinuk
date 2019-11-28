@@ -81,8 +81,6 @@ class Simulation[ConfigType <: XinukConfig : ValueReader](
           pos.neighbourId(id).map(_ => Neighbour(pos))
         }(collection.breakOut)
 
-        NeighbourPosition.values.flatMap{ pos => pos.neighbourId(id)}(collection.breakOut).foreach(x => println(id,x))
-
         workerRegionRef ! WorkerActor.NeighboursInitialized(id, neighbours)
       }
     }
