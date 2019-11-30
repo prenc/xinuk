@@ -24,6 +24,23 @@ final case class Grid(cells: CellArray, var workerId: WorkerId = WorkerId(0) )  
         smelling.withSmell(newSmell)
     }
   }
+
+  def propagatedSignalForInitial(calculateSmellAddends: (CellArray, Int, Int) => Vector[Option[Signal]], x: Int, y: Int)(implicit config: XinukConfig): GridPart = {
+    val current = cells(x)(y)
+    current match {
+      case Obstacle() => current
+      case smelling: SmellMedium =>
+        val currentSmell = current.smell
+        val addends = calculateSmellAddends(cells, x, y)
+        val (newSmell, _) = addends.foldLeft(Array.ofDim[Signal](Cell.Size, Cell.Size), 0) { case ((cell, index), signalOpt) =>
+          val (i, j) = SubcellCoordinates(index)
+          cell(i)(j) = (currentSmell(i)(j) * config.signalAttenuationFactorInit) + (signalOpt.getOrElse(Signal.Zero) * config.signalSuppressionFactorInit)
+          (cell, index + 1)
+        }
+        newSmell(1)(1) = Signal.Zero
+        smelling.withSmell(newSmell)
+    }
+  }
 }
 
 object Grid {

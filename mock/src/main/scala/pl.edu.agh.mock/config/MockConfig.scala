@@ -19,5 +19,11 @@ final case class MockConfig(
                              mockInitialSignal: Signal,
 
                              repulsionFactor: Double,
-                             distanceFactor: Double
+                             distanceFactor: Double,
+
+
+                             signalSuppressionFactorInit: Double,
+                             signalAttenuationFactorInit: Double,
+                             signalSpeedRatioInit: Int
+
                            ) extends XinukConfig

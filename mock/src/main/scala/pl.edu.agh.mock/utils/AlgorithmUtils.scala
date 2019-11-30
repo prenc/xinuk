@@ -127,7 +127,7 @@ class AlgorithmUtils(val workerId: Int) {
 
     (0 until (config.gridSize*2)).foreach { _ =>
       val cells = Array.tabulate(config.gridSize, config.gridSize)((x, y) =>
-        newGrid.propagatedSignal(InitSmellPropagation.calculateSmellAddends, x, y)
+        newGrid.propagatedSignalForInitial(InitSmellPropagation.calculateSmellAddends, x, y)
       )
       newGrid = Grid(cells, newGrid.workerId)
     }
