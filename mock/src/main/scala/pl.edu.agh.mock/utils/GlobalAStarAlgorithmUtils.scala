@@ -37,14 +37,40 @@ object GlobalAStarAlgorithmUtils {
     transitions(workerId)(directionValueFromWorkerIds(from, workerId)).map(direction => workerIdsFromDirectionValues(workerId, direction))
   }
 
-  def coordinatesDifferencesListFromSmellArray(smellArray: SmellArray): List[(Int, Int)] = {
-    differenceCoordinates()
+  def calculateDirection(smellArray: SmellArray, directionalSmellArray: SmellArray)(implicit config: MockConfig): List[(Int, Int)] = {
+    val smellIterator =
+      differenceCoordinates()
+        .filter(x => !(x._1 == 0 && x._2 == 0))
+        .map(cord => (cord._1, cord._2, smellArray(cord._1 + 1)(cord._2 + 1).value))
+    val directionIterator =
+      differenceCoordinates()
+        .filter(x => !(x._1 == 0 && x._2 == 0))
+        .map(cord => (cord._1, cord._2, directionalSmellArray(cord._1 + 1)(cord._2 + 1).value))
+
+    smellIterator
+      .zip(directionIterator)
+      .map {
+        case ((i, j, smell),(_, _, distance)) =>
+          (i, j, smell, distance)
+      }
       .filter(x => !(x._1 == 0 && x._2 == 0))
-      .map(cord => (cord._1, cord._2, smellArray(cord._1 + 1)(cord._2 + 1).value))
+      .map {
+        case (i, j, smell, distance) =>
+          (i, j, config.distanceFactor * distance + config.repulsionFactor * smell)
+      }
       .sortBy(_._3)
       .reverse
-      .map(x => directionToDifferenceCoordinates(differenceCoordinatesToDirection(x._1, x._2)))
+      .map(x => (x._1, x._2))
   }
+
+//  def coordinatesDifferencesListFromSmellArray(smellArray: SmellArray): List[(Int, Int)] = {
+//    differenceCoordinates()
+//      .filter(x => !(x._1 == 0 && x._2 == 0))
+//      .map(cord => (cord._1, cord._2, smellArray(cord._1 + 1)(cord._2 + 1).value))
+//      .sortBy(_._3)
+//      .reverse
+//      .map(x => (x._1, x._2))
+//  }
 
   def directionValueFromWorkerIds(from: Int, through: Int)(implicit config: MockConfig): Direction.Value = {
     val fromCoordinates = coordinatesOfWorkerId(from)

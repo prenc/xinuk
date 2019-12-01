@@ -68,7 +68,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     algorithmUtils.mapTransitionsThroughThisWorker(grid)
 
     val placeForMock = (config.gridSize / 2, config.gridSize / 2)
-    if (grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell] && workerId.value == 1) {
+    if (grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell]) {
       val mock = MockCell.create(
         config.mockInitialSignal,
         destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId),
@@ -102,6 +102,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   override def makeMoves(iteration: Long, grid: Grid): (Grid, MockMetrics) = {
 
+//    Thread.sleep(50)
+
     if (workerId == 0) {
       workerId = grid.workerId.value
     }
@@ -123,11 +125,11 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId)
             || !isDestinationPointAccessible(grid, occupiedCell)
           ) {
-            if (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId) {
-              if (occupiedCell.destinationPoint.currentDistance < occupiedCell.destinationPoint.distanceInStraightLine) {
-                throw new Exception("Calculation of current distance works bad")
-              }
-            }
+//            if (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId) {
+//              if (occupiedCell.destinationPoint.currentDistance < occupiedCell.destinationPoint.distanceInStraightLine) {
+//                throw new Exception("Calculation of current distance works bad")
+//              }
+//            }
             occupiedCell.routes.routeThroughWorkers = List[Int]()
             occupiedCell.routes.routeToDestination = List[(Int, Int)]()
             occupiedCell.destinationPoint = POIFactory.generatePOI(grid, x, y, WorkerId(workerId))
@@ -153,7 +155,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               try {
                 val direction = GlobalAStarAlgorithmUtils.directionValueFromWorkerIds(workerId, nextWorker)
                 val smellArray = directionalSmell.apply(direction)(x - 1)(y - 1)
-                var coordinates =  GlobalAStarAlgorithmUtils.coordinatesDifferencesListFromSmellArray(smellArray)
+                var coordinates =  GlobalAStarAlgorithmUtils.calculateDirection(grid.cells(x)(y).smell, smellArray)
                 do {
                   val directionDifference = coordinates.head
                   coordinates = coordinates.tail
@@ -240,7 +242,6 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               )
 
             crowdOnProcessor += 1
-            throw new Exception("c")
 
           case another@MockCell(_, anotherCrowd, _, _, _) =>
             newGrid.cells(x)(y) = newGrid.cells(x)(y) match {
