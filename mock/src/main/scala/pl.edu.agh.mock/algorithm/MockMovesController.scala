@@ -52,7 +52,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 //      grid.cells(9)(5) = Obstacle()
 //
 //      grid.cells(14)(11) = Obstacle()
-////      grid.cells(13)(11) = Obstacle()
+//      grid.cells(13)(11) = Obstacle()
 //      grid.cells(12)(11) = Obstacle()
 //      grid.cells(11)(11) = Obstacle()
 //      grid.cells(10)(11) = Obstacle()

@@ -160,20 +160,17 @@ object GlobalAStarAlgorithmUtils {
 
     while (openSet.nonEmpty) {
       val current = nodeWithLowestFScoreValue(openSet, fScore)
-      if(current == goal) {
+      if (current == goal) {
         return reconstructPath(cameFrom, current, goal)
       }
       openSet -= current
 
       var neighbours: List[Int] = List[Int]()
 
-      if (cameFrom.isEmpty) {
+      if (cameFrom.isEmpty)
         neighbours = accessibleNeighboursForFirstIteration(start, x, y, directionalSmell)
-      } else {
-        if (current != cameFrom(current)) {
-          neighbours = accessibleNeighboursOf(current, cameFrom(current), transitions)
-        }
-      }
+      else if (current != cameFrom(current))
+        neighbours = accessibleNeighboursOf(current, cameFrom(current), transitions)
 
       for (neighbour <- neighbours) {
         val tentativeGScore = gScore(current) + distance(current, neighbour)

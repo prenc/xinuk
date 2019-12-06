@@ -38,22 +38,18 @@ class AlgorithmUtils(val workerId: Int) {
     initializeEmptyListsForTransitions()
     for (sourceDirection <- Direction.values) {
       val coordinatesToCheck = coordinatesToCheckFor(sourceDirection)
-      for (destinationDirection <- Direction.values) {
-        if (sourceDirection != destinationDirection) {
-          val destinationDirectionalSmellArray: DirectionalSmellArray = directionalSmell(destinationDirection)
-          var sumOfPositive = 0
-          for (coordinateToCheck <- coordinatesToCheck) {
-            val x: Int = coordinateToCheck._1
-            val y: Int = coordinateToCheck._2
-            val smellInCoordinateToCheck = destinationDirectionalSmellArray(x)(y)
-            val numberOfPossibleDirections = smellInCoordinateToCheck.flatten.count(signal => signal.value != 0)
-            if (numberOfPossibleDirections != 0) {
-              sumOfPositive += 1
-            }
-          }
-          if (sumOfPositive == coordinatesToCheck.length) {
-            transitionsThroughThisWorker.apply(sourceDirection) += destinationDirection
-          }
+      for (destinationDirection <- Direction.values if sourceDirection != destinationDirection) {
+        val destinationDirectionalSmellArray: DirectionalSmellArray = directionalSmell(destinationDirection)
+        val sumOfPossibleMoves = coordinatesToCheck
+          .foldLeft(0)((sum: Int, coordinate: (Int, Int)) => {
+            val numberOfMoves =
+              destinationDirectionalSmellArray(coordinate._1)(coordinate._2)
+                .flatten.count(signal => signal.value != 0)
+            val possibleMove = if (numberOfMoves != 0) 1 else 0
+            sum + possibleMove
+          })
+        if (sumOfPossibleMoves == coordinatesToCheck.length) {
+          transitionsThroughThisWorker.apply(sourceDirection) += destinationDirection
         }
       }
     }
