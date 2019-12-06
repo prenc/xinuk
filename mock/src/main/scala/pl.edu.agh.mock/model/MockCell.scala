@@ -23,7 +23,7 @@ object MockCell {
               initialSignal: Signal,
               initialCrowd: List[MockCell] = List(),
               destinationPoint: LocalPoint,
-              routes: MockRoutes = MockRoutes(List[Int](), List[(Int, Int)]()),
+              routes: MockRoutes = MockRoutes(List[Int](), List[(Int, Int)](), 0),
               workerId: WorkerId
             ): MockCell =
     MockCell(Array.fill(Cell.Size, Cell.Size)(initialSignal), initialCrowd, destinationPoint, routes, workerId)
