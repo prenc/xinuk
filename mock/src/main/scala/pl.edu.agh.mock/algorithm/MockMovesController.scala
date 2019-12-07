@@ -34,11 +34,11 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
     val grid = Grid.empty(bufferZone, workerId = workerId)
 
-//    GridUtils.loadDataFromFile("map.json", grid)
+    GridUtils.loadDataFromFile("map.json", grid)
 
-    if ( workerId.value == 5) {
-      grid.cells(0)(5) = Obstacle()
-    }
+//    if ( workerId.value == 5) {
+//      grid.cells(0)(5) = Obstacle()
+//    }
 
 //    if (workerId.value == 1) {
 //      grid.cells(1)(5) = Obstacle()
@@ -102,7 +102,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   override def makeMoves(iteration: Long, grid: Grid): (Grid, MockMetrics) = {
 
-//    Thread.sleep(50)
+    Thread.sleep(50)
 
     if (workerId == 0) {
       workerId = grid.workerId.value

@@ -37,7 +37,7 @@ class AlgorithmUtils(val workerId: Int) {
   def mapTransitionsThroughThisWorker(grid: Grid)(implicit config: MockConfig): Unit = {
     initializeEmptyListsForTransitions()
     for (sourceDirection <- Direction.values) {
-      val coordinatesToCheck = coordinatesToCheckFor(sourceDirection)
+      val coordinatesToCheck = coordinatesToCheckFor(sourceDirection, grid)
       for (destinationDirection <- Direction.values if sourceDirection != destinationDirection) {
         val destinationDirectionalSmellArray: DirectionalSmellArray = directionalSmell(destinationDirection)
         val sumOfPossibleMoves = coordinatesToCheck
@@ -48,14 +48,14 @@ class AlgorithmUtils(val workerId: Int) {
             val possibleMove = if (numberOfMoves != 0) 1 else 0
             sum + possibleMove
           })
-        if (sumOfPossibleMoves == coordinatesToCheck.length) {
+        if (sumOfPossibleMoves == coordinatesToCheck.length && coordinatesToCheck.length > 0) {
           transitionsThroughThisWorker.apply(sourceDirection) += destinationDirection
         }
       }
     }
   }
 
-  def coordinatesToCheckFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {
+  def coordinatesToCheckFor(direction: Direction.Value, grid: Grid)(implicit config: MockConfig): Array[(Int, Int)] = {
     val coordinates = direction match {
       case Direction.TopLeft => Array((1, 1))
       case Direction.Top => Array.range(1, config.gridSize - 1).map(num => (1, num))
@@ -66,7 +66,8 @@ class AlgorithmUtils(val workerId: Int) {
       case Direction.Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 2, num))
       case Direction.BottomRight => Array((config.gridSize - 2, config.gridSize - 2))
     }
-    coordinates.map(coordinate => (coordinate._1 - 1, coordinate._2 - 1))
+    val withoutObstacles = coordinates.filter(coordinate => grid.cells(coordinate._1)(coordinate._2) != Obstacle())
+    withoutObstacles.map(coordinate => (coordinate._1 - 1, coordinate._2 - 1))
   }
 
   def mapLocalDistancesForEveryDirection(grid: Grid)(implicit config: MockConfig): Unit = {

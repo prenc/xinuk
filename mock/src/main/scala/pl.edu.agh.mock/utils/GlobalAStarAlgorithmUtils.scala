@@ -187,7 +187,7 @@ object GlobalAStarAlgorithmUtils {
         }
       }
     }
-    throw new Exception("A* failure")
+    throw new Exception(s"A* failure $start, $goal, $transitions")
   }
 
   def heuristic(worker: Int, goal: Int, transitions: Map[Int, Map[Direction.Value, List[Direction.Value]]])(implicit config: MockConfig): Double = {
