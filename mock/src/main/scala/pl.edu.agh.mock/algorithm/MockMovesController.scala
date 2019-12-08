@@ -4,7 +4,7 @@ import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model._
 import pl.edu.agh.mock.model.parallel.MockRoutes
 import pl.edu.agh.mock.simulation.MockMetrics
-import pl.edu.agh.mock.utils.{GlobalAStarAlgorithmUtils, GridUtils}
+import pl.edu.agh.mock.utils.{DistanceUtils, GlobalAStarAlgorithmUtils, GridUtils}
 import pl.edu.agh.mock.utlis.{AlgorithmUtils, LocalAStarAlgorithmUtils}
 import pl.edu.agh.xinuk.algorithm.MovesController
 import pl.edu.agh.xinuk.model.Cell.SmellArray
@@ -34,7 +34,10 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
     val grid = Grid.empty(bufferZone, workerId = workerId)
 
-    GridUtils.loadDataFromFile("map.json", grid)
+    if(config.loadObstacles == 1) {
+      GridUtils.loadDataFromFile("map.json", grid)
+    }
+
 
 //    if ( workerId.value == 5) {
 //      grid.cells(0)(5) = Obstacle()
@@ -71,7 +74,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     if (grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell]) {
       val mock = MockCell.create(
         config.mockInitialSignal,
-        destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId),
+        destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId, LocalPoint(0,0,workerId)),
         workerId = grid.workerId
       )
       grid.cells(placeForMock._1)(placeForMock._2) = mock
@@ -102,7 +105,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   override def makeMoves(iteration: Long, grid: Grid): (Grid, MockMetrics) = {
 
-    Thread.sleep(50)
+//    Thread.sleep(50)
 
     if (workerId == 0) {
       workerId = grid.workerId.value
@@ -120,19 +123,26 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
         val differences = (0, 0)
         var point = (x + differences._1, y + differences._2)
 
+        if (iteration == config.iterationsNumber - 1) {
+          println(occupiedCell.destinationPoint.currentDistance / occupiedCell.destinationPoint.distanceInStraightLine)
+        }
+
         if (x != 0 && y != 0 && x != config.gridSize && y != config.gridSize) {
           while (
             (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId)
             || !isDestinationPointAccessible(grid, occupiedCell)
           ) {
-//            if (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId) {
-//              if (occupiedCell.destinationPoint.currentDistance < occupiedCell.destinationPoint.distanceInStraightLine) {
-//                throw new Exception("Calculation of current distance works bad")
-//              }
-//            }
+            if (!isDestinationPointAccessible(grid, occupiedCell)) {
+              occupiedCell.destinationPoint.currentDistance += DistanceUtils
+                .calculateDistance(
+                  LocalPoint(x, y, WorkerId(workerId)),
+                  LocalPoint(occupiedCell.destinationPoint.x, occupiedCell.destinationPoint.y, occupiedCell.destinationPoint.workerId)
+                )
+            }
             occupiedCell.routes.routeThroughWorkers = List[Int]()
             occupiedCell.routes.routeToDestination = List[(Int, Int)]()
-            occupiedCell.destinationPoint = POIFactory.generatePOI(grid, x, y, WorkerId(workerId))
+
+            occupiedCell.destinationPoint = POIFactory.generatePOI(grid, x, y, WorkerId(workerId), occupiedCell.destinationPoint)
           }
 
           if (occupiedCell.routes.routeThroughWorkers.isEmpty && occupiedCell.destinationPoint.workerId.value != workerId) {

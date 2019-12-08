@@ -11,7 +11,7 @@ import scala.util.Random
 object POIFactory {
   private final val squareRootOfTwo = math.sqrt(2.0)
 
-  def generatePOI(grid: Grid, x: Int, y: Int, workerId: WorkerId)(implicit config : MockConfig): LocalPoint = {
+  def generatePOI(grid: Grid, x: Int, y: Int, workerId: WorkerId, oldPoint: LocalPoint)(implicit config : MockConfig): LocalPoint = {
     val random = new Random(System.nanoTime())
 
     val xDestination = random.nextInt(config.gridSize - 2) + 1
@@ -20,6 +20,6 @@ object POIFactory {
 
     val distance = DistanceUtils.calculateDistance(LocalPoint(x, y, workerId), LocalPoint(xDestination, yDestination, WorkerId(destinationWorkerId)))
 
-    LocalPoint(xDestination, yDestination, WorkerId(destinationWorkerId), squareRootOfTwo, distance)
+    LocalPoint(xDestination, yDestination, WorkerId(destinationWorkerId), oldPoint.currentDistance, oldPoint.distanceInStraightLine + distance)
   }
 }
