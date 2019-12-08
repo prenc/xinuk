@@ -37,29 +37,25 @@ class AlgorithmUtils(val workerId: Int) {
   def mapTransitionsThroughThisWorker(grid: Grid)(implicit config: MockConfig): Unit = {
     initializeEmptyListsForTransitions()
     for (sourceDirection <- Direction.values) {
-      val coordinatesToCheck = coordinatesToCheckFor(sourceDirection)
-      for (destinationDirection <- Direction.values) {
-        if (sourceDirection != destinationDirection) {
-          val destinationDirectionalSmellArray: DirectionalSmellArray = directionalSmell(destinationDirection)
-          var sumOfPositive = 0
-          for (coordinateToCheck <- coordinatesToCheck) {
-            val x: Int = coordinateToCheck._1
-            val y: Int = coordinateToCheck._2
-            val smellInCoordinateToCheck = destinationDirectionalSmellArray(x)(y)
-            val numberOfPossibleDirections = smellInCoordinateToCheck.flatten.count(signal => signal.value != 0)
-            if (numberOfPossibleDirections != 0) {
-              sumOfPositive += 1
-            }
-          }
-          if (sumOfPositive == coordinatesToCheck.length) {
-            transitionsThroughThisWorker.apply(sourceDirection) += destinationDirection
-          }
+      val coordinatesToCheck = coordinatesToCheckFor(sourceDirection, grid)
+      for (destinationDirection <- Direction.values if sourceDirection != destinationDirection) {
+        val destinationDirectionalSmellArray: DirectionalSmellArray = directionalSmell(destinationDirection)
+        val sumOfPossibleMoves = coordinatesToCheck
+          .foldLeft(0)((sum: Int, coordinate: (Int, Int)) => {
+            val numberOfMoves =
+              destinationDirectionalSmellArray(coordinate._1)(coordinate._2)
+                .flatten.count(signal => signal.value != 0)
+            val possibleMove = if (numberOfMoves != 0) 1 else 0
+            sum + possibleMove
+          })
+        if (sumOfPossibleMoves == coordinatesToCheck.length && coordinatesToCheck.length > 0) {
+          transitionsThroughThisWorker.apply(sourceDirection) += destinationDirection
         }
       }
     }
   }
 
-  def coordinatesToCheckFor(direction: Direction.Value)(implicit config: MockConfig): Array[(Int, Int)] = {
+  def coordinatesToCheckFor(direction: Direction.Value, grid: Grid)(implicit config: MockConfig): Array[(Int, Int)] = {
     val coordinates = direction match {
       case Direction.TopLeft => Array((1, 1))
       case Direction.Top => Array.range(1, config.gridSize - 1).map(num => (1, num))
@@ -70,7 +66,8 @@ class AlgorithmUtils(val workerId: Int) {
       case Direction.Bottom => Array.range(1, config.gridSize - 1).map(num => (config.gridSize - 2, num))
       case Direction.BottomRight => Array((config.gridSize - 2, config.gridSize - 2))
     }
-    coordinates.map(coordinate => (coordinate._1 - 1, coordinate._2 - 1))
+    val withoutObstacles = coordinates.filter(coordinate => grid.cells(coordinate._1)(coordinate._2) != Obstacle())
+    withoutObstacles.map(coordinate => (coordinate._1 - 1, coordinate._2 - 1))
   }
 
   def mapLocalDistancesForEveryDirection(grid: Grid)(implicit config: MockConfig): Unit = {
@@ -122,7 +119,7 @@ class AlgorithmUtils(val workerId: Int) {
 
     for (coordinate <- coordinates) {
       if (grid.cells(coordinate._1)(coordinate._2) != Obstacle())
-        newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)]()), grid.workerId)
+        newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)](), workerId), grid.workerId)
     }
 
     (0 until (config.gridSize*2)).foreach { _ =>

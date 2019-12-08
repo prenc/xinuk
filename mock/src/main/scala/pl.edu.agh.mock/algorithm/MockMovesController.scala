@@ -4,7 +4,7 @@ import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model._
 import pl.edu.agh.mock.model.parallel.MockRoutes
 import pl.edu.agh.mock.simulation.MockMetrics
-import pl.edu.agh.mock.utils.{GlobalAStarAlgorithmUtils, GridUtils}
+import pl.edu.agh.mock.utils.{DistanceUtils, GlobalAStarAlgorithmUtils, GridUtils}
 import pl.edu.agh.mock.utlis.{AlgorithmUtils, LocalAStarAlgorithmUtils}
 import pl.edu.agh.xinuk.algorithm.MovesController
 import pl.edu.agh.xinuk.model.Cell.SmellArray
@@ -34,11 +34,14 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
     val grid = Grid.empty(bufferZone, workerId = workerId)
 
-//    GridUtils.loadDataFromFile("map.json", grid)
-
-    if ( workerId.value == 5) {
-      grid.cells(0)(5) = Obstacle()
+    if(config.loadObstacles == 1) {
+      GridUtils.loadDataFromFile("map.json", grid)
     }
+
+
+//    if ( workerId.value == 5) {
+//      grid.cells(0)(5) = Obstacle()
+//    }
 
 //    if (workerId.value == 1) {
 //      grid.cells(1)(5) = Obstacle()
@@ -52,7 +55,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 //      grid.cells(9)(5) = Obstacle()
 //
 //      grid.cells(14)(11) = Obstacle()
-////      grid.cells(13)(11) = Obstacle()
+//      grid.cells(13)(11) = Obstacle()
 //      grid.cells(12)(11) = Obstacle()
 //      grid.cells(11)(11) = Obstacle()
 //      grid.cells(10)(11) = Obstacle()
@@ -71,7 +74,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     if (grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell]) {
       val mock = MockCell.create(
         config.mockInitialSignal,
-        destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId),
+        destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId, LocalPoint(0,0,workerId)),
         workerId = grid.workerId
       )
       grid.cells(placeForMock._1)(placeForMock._2) = mock
@@ -120,19 +123,26 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
         val differences = (0, 0)
         var point = (x + differences._1, y + differences._2)
 
+        if (iteration == config.iterationsNumber - 1) {
+          println(occupiedCell.destinationPoint.currentDistance / occupiedCell.destinationPoint.distanceInStraightLine)
+        }
+
         if (x != 0 && y != 0 && x != config.gridSize && y != config.gridSize) {
           while (
             (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId)
             || !isDestinationPointAccessible(grid, occupiedCell)
           ) {
-//            if (occupiedCell.destinationPoint.x == x && occupiedCell.destinationPoint.y ==  y && occupiedCell.destinationPoint.workerId.value == workerId) {
-//              if (occupiedCell.destinationPoint.currentDistance < occupiedCell.destinationPoint.distanceInStraightLine) {
-//                throw new Exception("Calculation of current distance works bad")
-//              }
-//            }
+            if (!isDestinationPointAccessible(grid, occupiedCell)) {
+              occupiedCell.destinationPoint.currentDistance += DistanceUtils
+                .calculateDistance(
+                  LocalPoint(x, y, WorkerId(workerId)),
+                  LocalPoint(occupiedCell.destinationPoint.x, occupiedCell.destinationPoint.y, occupiedCell.destinationPoint.workerId)
+                )
+            }
             occupiedCell.routes.routeThroughWorkers = List[Int]()
             occupiedCell.routes.routeToDestination = List[(Int, Int)]()
-            occupiedCell.destinationPoint = POIFactory.generatePOI(grid, x, y, WorkerId(workerId))
+
+            occupiedCell.destinationPoint = POIFactory.generatePOI(grid, x, y, WorkerId(workerId), occupiedCell.destinationPoint)
           }
 
           if (occupiedCell.routes.routeThroughWorkers.isEmpty && occupiedCell.destinationPoint.workerId.value != workerId) {
@@ -152,22 +162,26 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             if (workerId == nextWorker) {
               occupiedCell.routes.routeThroughWorkers = occupiedCell.routes.routeThroughWorkers.tail
             } else {
+              var direction = Direction.Left
               try {
-                val direction = GlobalAStarAlgorithmUtils.directionValueFromWorkerIds(workerId, nextWorker)
-                val smellArray = directionalSmell.apply(direction)(x - 1)(y - 1)
-                var coordinates =  GlobalAStarAlgorithmUtils.calculateDirection(grid.cells(x)(y).smell, smellArray)
-                do {
-                  val directionDifference = coordinates.head
-                  coordinates = coordinates.tail
-                  point = (x + directionDifference._1, y + directionDifference._2)
-                } while (newGrid.cells(point._1)(point._2) == Obstacle())
-
+                direction = GlobalAStarAlgorithmUtils.directionValueFromWorkerIds(workerId, nextWorker)
               } catch {
                 case e: Exception => {
-                  println("Exception: ", workerId, nextWorker, occupiedCell.routes.routeThroughWorkers)
-                  setGlobalRoute(occupiedCell, workerId, occupiedCell.destinationPoint.workerId.value, x, y)
+                  if (occupiedCell.routes.previousWorkerId == workerId) {
+                    setGlobalRoute(occupiedCell, workerId, occupiedCell.destinationPoint.workerId.value, x, y)
+                  } else {
+                    direction = GlobalAStarAlgorithmUtils.directionValueFromWorkerIds(workerId, occupiedCell.routes.previousWorkerId)
+                  }
                 }
               }
+              occupiedCell.routes.previousWorkerId = workerId
+              val smellArray = directionalSmell.apply(direction)(x - 1)(y - 1)
+              var coordinates =  GlobalAStarAlgorithmUtils.calculateDirection(grid.cells(x)(y).smell, smellArray)
+              do {
+                val directionDifference = coordinates.head
+                coordinates = coordinates.tail
+                point = (x + directionDifference._1, y + directionDifference._2)
+              } while (newGrid.cells(point._1)(point._2) == Obstacle())
             }
           }
         }
@@ -202,7 +216,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                 occupiedCell.destinationPoint,
                 MockRoutes(
                   occupiedCell.routes.routeThroughWorkers,
-                  occupiedCell.routes.routeToDestination
+                  occupiedCell.routes.routeToDestination,
+                  occupiedCell.routes.previousWorkerId
                 ),
                 occupiedCell.workerId
               )
@@ -235,7 +250,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                   occupiedCell.destinationPoint,
                   MockRoutes(
                     occupiedCell.routes.routeThroughWorkers,
-                    occupiedCell.routes.routeToDestination
+                    occupiedCell.routes.routeToDestination,
+                    occupiedCell.routes.previousWorkerId
                   ),
                   grid.workerId
                 )
@@ -263,7 +279,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                 occupiedCell.destinationPoint,
                 MockRoutes(
                   occupiedCell.routes.routeThroughWorkers,
-                  occupiedCell.routes.routeToDestination
+                  occupiedCell.routes.routeToDestination,
+                  occupiedCell.routes.previousWorkerId
                 ),
                 grid.workerId
               )
@@ -289,7 +306,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                   occupiedCell.destinationPoint,
                   MockRoutes(
                     occupiedCell.routes.routeThroughWorkers,
-                    occupiedCell.routes.routeToDestination
+                    occupiedCell.routes.routeToDestination,
+                    occupiedCell.routes.previousWorkerId
                   ),
                   grid.workerId
                 )
@@ -350,7 +368,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             mock.destinationPoint,
             MockRoutes(
               mock.routes.routeThroughWorkers,
-              mock.routes.routeToDestination
+              mock.routes.routeToDestination,
+              mock.routes.previousWorkerId
             ),
             workerId = grid.workerId
           ).withSmell(newSmell)

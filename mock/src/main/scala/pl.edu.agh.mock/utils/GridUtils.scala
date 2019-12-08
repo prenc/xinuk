@@ -10,11 +10,11 @@ object GridUtils extends LazyLogging{
   def loadDataFromFile(filename: String, grid: Grid)(implicit config: XinukConfig): Unit = {
     val simulationMap: SimulationMap = JsonMapParser.parseMapFromJson(filename)
     val gridArray = simulationMap.getTilesAsArray
-    val xOffset = calculateXOffset(grid.workerId, config.workersRoot, config.gridSize)
-    val yOffset = calculateYOffset(grid.workerId, config.workersRoot, config.gridSize)
-    for (i <- 0 until config.gridSize; j <- 0 until config.gridSize) {
+    val xOffset = calculateXOffset(grid.workerId, config.workersRoot, config.gridSize - 2)
+    val yOffset = calculateYOffset(grid.workerId, config.workersRoot, config.gridSize - 2)
+    for (i <- 1 until config.gridSize - 1; j <- 1 until config.gridSize - 1) {
       grid.cells(i)(j) match {
-        case EmptyCell.Instance => grid.cells(i)(j) = gridArray(i + xOffset)(j + yOffset)
+        case EmptyCell.Instance => grid.cells(i)(j) = gridArray(i - 1 + xOffset)(j - 1 + yOffset)
         case _ =>
       }
     }
@@ -24,36 +24,10 @@ object GridUtils extends LazyLogging{
   //TODO: Refactor this method
   private def updateBufferZone(grid: Grid, gridArray: Array[Array[GridPart]], xOffset: Int, yOffset: Int)
                               (implicit config: XinukConfig) = {
-    for (i <- 0 until config.gridSize) {
-      //Left side
-      grid.cells(i)(1) match {
-        case Obstacle() => grid.cells(i)(0) = Obstacle()
-        case _ =>
-      }
-
-      //Right side
-      grid.cells(i)(config.gridSize - 2) match {
-        case Obstacle() => grid.cells(i)(config.gridSize - 1) = Obstacle()
-        case _ =>
-      }
-
-      //Top
-      grid.cells(1)(i) match {
-        case Obstacle() => grid.cells(0)(i) = Obstacle()
-        case _ =>
-      }
-
-      //Bottom
-      grid.cells(config.gridSize - 2)(i) match {
-        case Obstacle() => grid.cells(config.gridSize - 1)(i) = Obstacle()
-        case _ =>
-      }
-    }
-
     // Update left buffer zone
     if (yOffset > 0) {
-      for (i <- 0 until config.gridSize) {
-        gridArray(xOffset + i)(yOffset - 2) match {
+      for (i <- 1 until config.gridSize - 1) {
+        gridArray(xOffset + i - 1)(yOffset - 1) match {
           case Obstacle() => grid.cells(i)(0) = Obstacle()
           case _ =>
         }
@@ -62,8 +36,8 @@ object GridUtils extends LazyLogging{
 
     // Update top buffer zone
     if (xOffset > 0) {
-      for (i <- 0 until config.gridSize) {
-        gridArray(xOffset - 2)(yOffset + i) match {
+      for (i <- 1 until config.gridSize - 1) {
+        gridArray(xOffset - 1)(yOffset + i - 1) match {
           case Obstacle() => grid.cells(0)(i) = Obstacle()
           case _ =>
         }
@@ -71,9 +45,9 @@ object GridUtils extends LazyLogging{
     }
 
     //Update right buffer zone
-    if (grid.workerId.value % config.workersRoot != 0) {
-      for (i <- 0 until config.gridSize) {
-        gridArray(xOffset + i)(yOffset + config.gridSize + 1) match {
+    if (yOffset != config.workersRoot - 1) {
+      for (i <- 1 until config.gridSize - 1) {
+        gridArray(xOffset + i - 1)(yOffset + config.gridSize - 2) match {
           case Obstacle() => grid.cells(i)(config.gridSize - 1) = Obstacle()
           case _ =>
         }
@@ -81,29 +55,51 @@ object GridUtils extends LazyLogging{
     }
 
     //Update bottom buffer zone
-    if (grid.workerId.value <= (Math.pow(config.workersRoot, 2) - config.workersRoot)) {
-      for (i <- 0 until config.gridSize) {
-        gridArray(xOffset + config.gridSize + 1)(yOffset + i) match {
+    if (xOffset != config.workersRoot - 1) {
+      for (i <- 1 until config.gridSize - 1) {
+        gridArray(xOffset + config.gridSize - 2)(yOffset + i - 1) match {
           case Obstacle() => grid.cells(config.gridSize - 1)(i) = Obstacle()
           case _ =>
         }
+      }
+    }
+
+    //Update top left corner
+    if (xOffset > 0 && yOffset > 0) {
+      gridArray(xOffset - 1)(yOffset - 1) match {
+        case Obstacle() => grid.cells(0)(0) = Obstacle()
+        case _ =>
+      }
+    }
+
+    //Update top right corner
+    if (xOffset > 0 && yOffset != config.workersRoot - 1) {
+      gridArray(xOffset - 1)(yOffset + config.gridSize - 2) match {
+        case Obstacle() => grid.cells(0)(config.gridSize - 1) = Obstacle()
+        case _ =>
+      }
+    }
+
+    //Update bottom left corner
+    if (xOffset != config.workersRoot - 1 && yOffset > 0) {
+      gridArray(xOffset + config.gridSize - 2)(yOffset - 1) match {
+        case Obstacle() => grid.cells(config.gridSize - 1)(0) = Obstacle()
+        case _ =>
+      }
+    }
+
+    //Update bottom right corner
+    if (xOffset != config.workersRoot - 1 && yOffset != config.workersRoot - 1) {
+      gridArray(xOffset + config.gridSize - 2)(yOffset + config.gridSize - 2) match {
+        case Obstacle() => grid.cells(config.gridSize - 1)(config.gridSize - 1) = Obstacle()
+        case _ =>
       }
     }
   }
 
 
   private def calculateXOffset(workerId: WorkerId, workersRoot: Int, gridSize: Int): Int = {
-    if (workerId.value <= workersRoot){
-      0
-    } else {
-      var value = workerId.value
-      var counter = 0
-      while (value > workersRoot) {
-        value -= workersRoot
-        counter += 1
-      }
-      counter * gridSize
-    }
+    Math.floor((workerId.value - 1) / workersRoot).toInt * gridSize
   }
 
   private def calculateYOffset(workerId: WorkerId, workersRoot: Int, gridSize: Int): Int = {

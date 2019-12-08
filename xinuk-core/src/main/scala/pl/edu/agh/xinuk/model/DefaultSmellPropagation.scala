@@ -4,6 +4,7 @@ import pl.edu.agh.xinuk.model.Cell.SmellArray
 import pl.edu.agh.xinuk.model.Grid.{CellArray, SubcellCoordinates}
 
 object DefaultSmellPropagation {
+  private final val squareRootOfTwo = math.sqrt(2.0)
 
   def calculateSmellAddends(cells: CellArray, x: Int, y: Int): Vector[Option[Signal]] = {
     @inline def destinationCellSignal(i: Int, j: Int): Option[SmellArray] = {
@@ -12,17 +13,30 @@ object DefaultSmellPropagation {
 
     SubcellCoordinates.map {
       case (i, j) if i == 1 || j == 1 =>
-        destinationCellSignal(i, j).map(signal =>
-          signal(i)(j) + signal(i + j - 1)(i + j - 1) + signal(i - j + 1)(j - i + 1)
-        )
+        destinationCellSignal(i, j).map(signal => {
+          val straight = Signal(
+            signal(i)(j).value
+          )
+          val firstCurve = Signal(
+            (signal(i + j - 1)(i + j - 1).value + signal(i - j + 1)(j - i + 1).value) / math.pow(20, 2)
+          )
+          val secondCurve = Signal(
+            (signal(j)(i).value + signal(math.abs(j-2))(math.abs(i-2)).value) / math.pow(20, 3)
+          )
+          straight + firstCurve + secondCurve
+        })
       case (i, j) =>
         destinationCellSignal(i, j).map(signal => {
-          var signalSum = signal(i)(j)
-          if(!outOfBounds(x + (j - i) / 2, y + (i + j - 2) / 2, cells) && cells(x + (j - i) / 2)(y + (i + j - 2) / 2) == Obstacle())
-            signalSum += signal(i / 2 + j / 2)(j /2 - i / 2 + 1) + signal(j)(2 - i)
-          if(!outOfBounds(x + (i + j - 2) / 2, y + (i - j) / 2, cells) && cells(x + (i + j - 2) / 2)(y + (i - j) / 2) == Obstacle())
-            signalSum += signal(i / 2 - j / 2 + 1)(j / 2 + i / 2) + signal(2 - j)(i)
-          signalSum
+          val straight = Signal(
+            signal(i)(j).value / squareRootOfTwo
+          )
+          val firstCurve = Signal(
+            (signal(i / 2 - j / 2 + 1)(j / 2 + i / 2).value + signal(i / 2 + j / 2)(j /2 - i / 2 + 1).value) / (math.pow(20, 2) * squareRootOfTwo)
+          )
+          val secondCurve = Signal(
+            (signal(i)(math.abs(j-2)).value + signal(math.abs(i-2))(j).value) / (math.pow(20, 3) * squareRootOfTwo)
+          )
+          straight + firstCurve + secondCurve
         })
     }
   }

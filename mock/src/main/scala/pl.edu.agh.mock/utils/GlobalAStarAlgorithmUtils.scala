@@ -160,20 +160,17 @@ object GlobalAStarAlgorithmUtils {
 
     while (openSet.nonEmpty) {
       val current = nodeWithLowestFScoreValue(openSet, fScore)
-      if(current == goal) {
+      if (current == goal) {
         return reconstructPath(cameFrom, current, goal)
       }
       openSet -= current
 
       var neighbours: List[Int] = List[Int]()
 
-      if (cameFrom.isEmpty) {
+      if (cameFrom.isEmpty)
         neighbours = accessibleNeighboursForFirstIteration(start, x, y, directionalSmell)
-      } else {
-        if (current != cameFrom(current)) {
-          neighbours = accessibleNeighboursOf(current, cameFrom(current), transitions)
-        }
-      }
+      else if (current != cameFrom(current))
+        neighbours = accessibleNeighboursOf(current, cameFrom(current), transitions)
 
       for (neighbour <- neighbours) {
         val tentativeGScore = gScore(current) + distance(current, neighbour)
@@ -190,7 +187,7 @@ object GlobalAStarAlgorithmUtils {
         }
       }
     }
-    throw new Exception("A* failure")
+    throw new Exception(s"A* failure $start, $goal, $transitions")
   }
 
   def heuristic(worker: Int, goal: Int, transitions: Map[Int, Map[Direction.Value, List[Direction.Value]]])(implicit config: MockConfig): Double = {
