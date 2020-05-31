@@ -8,6 +8,7 @@ import pl.edu.agh.xinuk.model.{BufferCell, Grid, InitSmellPropagation, Obstacle,
 import pl.edu.agh.xinuk.utils.Direction
 
 import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 class AlgorithmUtils(val workerId: Int) {
   type DirectionalSmellArray = Array[Array[SmellArray]]
@@ -119,7 +120,7 @@ class AlgorithmUtils(val workerId: Int) {
 
     for (coordinate <- coordinates) {
       if (grid.cells(coordinate._1)(coordinate._2) != Obstacle())
-        newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)](), workerId), grid.workerId)
+        newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)](), workerId), grid.workerId, false)
     }
 
     (0 until (config.gridSize*2)).foreach { _ =>

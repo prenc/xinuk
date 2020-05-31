@@ -10,7 +10,8 @@ final case class MockCell(
                            crowd: List[MockCell],
                            var destinationPoint: LocalPoint,
                            var routes: MockRoutes,
-                           workerId: WorkerId
+                           workerId: WorkerId,
+                           covid19: Boolean
                          ) extends SmellingCell {
 
   override type Self = MockCell
@@ -24,9 +25,10 @@ object MockCell {
               initialCrowd: List[MockCell] = List(),
               destinationPoint: LocalPoint,
               routes: MockRoutes = MockRoutes(List[Int](), List[(Int, Int)](), 0),
-              workerId: WorkerId
+              workerId: WorkerId,
+              covid19: Boolean
             ): MockCell =
-    MockCell(Array.fill(Cell.Size, Cell.Size)(initialSignal), initialCrowd, destinationPoint, routes, workerId)
+    MockCell(Array.fill(Cell.Size, Cell.Size)(initialSignal), initialCrowd, destinationPoint, routes, workerId, covid19)
 }
 
 trait MockAccessible[+T <: GridPart] {
@@ -47,7 +49,8 @@ object MockAccessible {
           crowd,
           destinationPoint,
           routes,
-          workerId
+          workerId,
+          covid19 = false
         )
     }
 
@@ -64,7 +67,8 @@ object MockAccessible {
           crowd,
           destinationPoint,
           routes,
-          workerId
+          workerId,
+          false
         ))
     }
 

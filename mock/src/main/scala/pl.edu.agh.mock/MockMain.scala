@@ -1,7 +1,6 @@
 package pl.edu.agh.mock
 
 import java.awt.Color
-
 import com.typesafe.scalalogging.LazyLogging
 import pl.edu.agh.mock.algorithm.MockMovesController
 import pl.edu.agh.mock.model.MockCell
@@ -21,12 +20,11 @@ object MockMain extends LazyLogging {
       MockConflictResolver,
       DefaultSmellPropagation.calculateSmellAddends)(new MockMovesController(_)(_),
       {
-        case MockCell(_, x, _, _, _) =>
-          x.size match {
-            case 0 => Color.white
-            case 1 => Color.yellow
-            case 2 => Color.pink
-            case _ => Color.cyan
+        case MockCell(_, _, _, _, _, x) =>
+          if (x) {
+            Color.red
+          } else {
+            Color.white
           }
         case Obstacle() => Color.black
         case cell: SmellingCell => cellToColorRegions(cell)
@@ -36,24 +34,7 @@ object MockMain extends LazyLogging {
   private def cellToColorRegions(cell: SmellingCell): Color = {
     val smellValue = cell.smell.map(_.map(_.value).sum).sum.toFloat
     val brightness = 1.toFloat - Math.pow(smellValue, 0.1).toFloat
-//    val brightness = 0.5f
     val saturation = 0f
-  /*  if (smellValue < 0.00001) {
-      val hue = 1f
-      Color.getHSBColor(hue, saturation, brightness)
-    } else if (smellValue < 0.001) {
-      val hue = 0.65f
-      val saturation = 1f
-      Color.getHSBColor(hue, saturation, brightness)
-    } else if (smellValue < 0.1) {
-      val hue = 0.28f
-      val saturation = 1f
-      Color.getHSBColor(hue, saturation, brightness)
-    } else {
-      val hue = 0.11f
-      val saturation = 0.69f
-      Color.getHSBColor(hue, saturation, brightness)
-    }*/
     val hue = 0f
     Color.getHSBColor(hue, saturation, brightness)
   }
