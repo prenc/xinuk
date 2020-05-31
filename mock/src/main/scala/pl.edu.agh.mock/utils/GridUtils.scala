@@ -20,6 +20,9 @@ object GridUtils extends LazyLogging{
     }
 
     updateBufferZone(grid, gridArray, xOffset, yOffset)
+    updateBufferZone(grid, gridArray, xOffset, yOffset)
+    updateBufferZone(grid, gridArray, xOffset, yOffset)
+    updateBufferZone(grid, gridArray, xOffset, yOffset)
   }
   //TODO: Refactor this method
   private def updateBufferZone(grid: Grid, gridArray: Array[Array[GridPart]], xOffset: Int, yOffset: Int)

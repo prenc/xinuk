@@ -32,7 +32,7 @@ object MockMain extends LazyLogging {
           } else if (x && y >= 600) {
             Color.blue
           } else {
-            Color.white
+            Color.gray
           }
         case Obstacle() => Color.black
         case cell: SmellingCell => cellToColorRegions(cell)
@@ -45,6 +45,7 @@ object MockMain extends LazyLogging {
     val saturation = 0f
     val hue = 0f
     Color.getHSBColor(hue, saturation, brightness)
+    Color.white
   }
 
 }

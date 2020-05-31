@@ -77,7 +77,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
         config.mockInitialSignal,
         destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId, LocalPoint(0,0,workerId)),
         workerId = grid.workerId,
-        covid19 = Random.nextDouble() > 0.8,
+        covid19 = Random.nextDouble() > 0.9,
         time = 0
       )
       grid.cells(placeForMock._1)(placeForMock._2) = mock
