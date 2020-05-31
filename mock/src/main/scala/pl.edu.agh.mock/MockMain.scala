@@ -12,8 +12,8 @@ object MockMain extends LazyLogging {
   private val configPrefix = "mock"
   private val metricHeaders = Vector()
 
-  val INCUBATION_PERIOD = 550 // 5-6 days
-  val CONVALESCENT = 1200 // 10-14 days
+  val INCUBATION_PERIOD = 775 // 5-6 days
+  val CONVALESCENT = 1800 // 10-14 days
 
   def main(args: Array[String]): Unit = {
     import pl.edu.agh.xinuk.config.ValueReaders._

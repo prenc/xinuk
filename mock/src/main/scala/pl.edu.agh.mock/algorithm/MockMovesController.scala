@@ -22,9 +22,9 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
   var workerId = 0
   var directionalSmell: Map[Direction.Value, Array[Array[SmellArray]]] = Map[Direction.Value, Array[Array[SmellArray]]]()
   val random = Random
-  val CONVALESCENT = 2400 // 10-14 days
-  val DEATH_RATE = 0.09 // 9% dies
-  val INITIAL_SICK_PERCENTAGE = 0.1 // 12% chance to be initially sick
+  val CONVALESCENT = 1800 // 10-14 days
+  val DEATH_RATE = 0.2 // 2% dies
+  val INITIAL_SICK_PERCENTAGE = 0.04 // 4% chance to be initially sick
 
   override def receiveMessage(message: Any): Unit = {
     val tuple = message.asInstanceOf[(Int, Map[Direction.Value, List[Direction.Value]])]
@@ -76,6 +76,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
     initializeMock(workerId, grid)
     initializeMock(workerId, grid)
+    initializeMock(workerId, grid)
+    initializeMock(workerId, grid)
 
     val metrics = MockMetrics.empty()
     (grid, metrics, algorithmUtils.getTransitionsThroughThisWorker())
@@ -91,7 +93,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
         config.mockInitialSignal,
         destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId, LocalPoint(0, 0, workerId)),
         workerId = grid.workerId,
-        covid19 = Random.nextDouble() > 1.0 - INITIAL_SICK_PERCENTAGE,
+        covid19 = random.nextDouble() > 1.0 - INITIAL_SICK_PERCENTAGE,
         time = 0
       )
       grid.cells(placeForMock._1)(placeForMock._2) = mock
@@ -137,9 +139,10 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
         val differences = (0, 0)
         var point = (x + differences._1, y + differences._2)
 
-        if (iteration == config.iterationsNumber - 1) {
+        if (iteration == 2) {
           println("COVID-19: " + occupiedCell.covid19 + " time: " + occupiedCell.time)
-//          println(occupiedCell.destinationPoint.currentDistance / occupiedCell.destinationPoint.distanceInStraightLine)
+        } else if (iteration == config.iterationsNumber - 10) {
+          println("COVID-19: " + occupiedCell.covid19 + " time: " + occupiedCell.time)
         }
 
         if (x != 0 && y != 0 && x != config.gridSize && y != config.gridSize) {
@@ -237,7 +240,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                   occupiedCell.routes.previousWorkerId
                 ),
                 occupiedCell.workerId,
-                if (isHealthy(occupiedCell)) false else occupiedCell.covid19,
+                occupiedCell.covid19,
                 occupiedNewTime
               )
 
@@ -367,10 +370,10 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             initialCrowd = mock.crowd.head.crowd,
             destinationPoint = mock.crowd.head.destinationPoint,
             workerId = grid.workerId,
-            covid19 = mock.crowd.head.covid19,
+            covid19 = if (isHealthy(mock.crowd.head)) false else mock.crowd.head.covid19,
             time = mock.crowd.head.time
           ).withSmell(newSmell)
-        if (canMove(singlePedestrianFromCrowd)) makeMockMove(singlePedestrianFromCrowd)
+        makeMockMove(singlePedestrianFromCrowd)
 
         val mockWithoutOneCrowdPerson =
           MockCell.create(
@@ -378,7 +381,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             mock.crowd.drop(1),
             mock.destinationPoint,
             workerId = grid.workerId,
-            covid19 = mock.covid19,
+            covid19 = if (isHealthy(mock)) false else mock.covid19,
             time = mock.time
           ).withSmell(newSmell)
 
@@ -389,7 +392,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               mockWithoutOneCrowdPerson.crowd ++ List(newPedestrian),
               mock.destinationPoint,
               workerId = grid.workerId,
-              covid19 = mockWithoutOneCrowdPerson.covid19,
+              covid19 = if (isHealthy(mockWithoutOneCrowdPerson)) false else mockWithoutOneCrowdPerson.covid19,
               time = mockWithoutOneCrowdPerson.time
             ).withSmell(newSmell)
            case _ =>
@@ -409,7 +412,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               mock.routes.previousWorkerId
             ),
             workerId = grid.workerId,
-            covid19 = mock.covid19,
+            covid19 = if (isHealthy(mock)) false else mock.covid19,
             time = mock.time
           ).withSmell(newSmell)
         if (canMove(occupiedCell)) makeMockMove(occupiedCell)
@@ -459,7 +462,10 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
   }
 
   def isHealthy(mock: MockCell): Boolean = {
-    !mock.covid19 || (mock.time == CONVALESCENT && random.nextDouble() < 1.0 - DEATH_RATE) || mock.time >= CONVALESCENT
+    if (mock.covid19 && mock.time == CONVALESCENT)
+      random.nextDouble() < 1.0 - DEATH_RATE
+    else
+      false
   }
 
 }
