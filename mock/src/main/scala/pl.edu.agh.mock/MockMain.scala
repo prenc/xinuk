@@ -20,9 +20,17 @@ object MockMain extends LazyLogging {
       MockConflictResolver,
       DefaultSmellPropagation.calculateSmellAddends)(new MockMovesController(_)(_),
       {
-        case MockCell(_, _, _, _, _, x) =>
-          if (x) {
+        case MockCell(_, _, _, _, _, x, y) =>
+          if (x && y >= 0 && y < 200) {
+            Color.yellow
+          } else if (x && y >= 200 && y < 450) {
+            Color.orange
+          } else if (x && y >= 450 && y < 600) {
             Color.red
+          } else if (!x && y >= 600) {
+            Color.green
+          } else if (x && y >= 600) {
+            Color.blue
           } else {
             Color.white
           }

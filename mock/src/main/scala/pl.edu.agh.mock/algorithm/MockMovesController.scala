@@ -76,7 +76,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
         config.mockInitialSignal,
         destinationPoint = POIFactory.generatePOI(grid, placeForMock._1, placeForMock._2, workerId, LocalPoint(0,0,workerId)),
         workerId = grid.workerId,
-        covid19 = Random.nextDouble() > 0.8
+        covid19 = Random.nextDouble() > 0.8,
+        time = 0
       )
       grid.cells(placeForMock._1)(placeForMock._2) = mock
     }
@@ -204,10 +205,12 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
           }
         }
 
+        val occupiedNewTime: Integer = if (occupiedCell.covid19) occupiedCell.time + 1 else occupiedCell.time
+
         newGrid.cells(destination._1)(destination._2) match {
           case EmptyCell(_) =>
             newGrid.cells(x)(y) = newGrid.cells(x)(y) match {
-              case occupied@MockCell(_, _, _, _, _, _) => occupied
+              case occupied@MockCell(_, _, _, _, _, _, _) => occupied
               case _ => vacatedCell
             }
             newGrid.cells(destination._1)(destination._2) =
@@ -221,34 +224,36 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                   occupiedCell.routes.previousWorkerId
                 ),
                 occupiedCell.workerId,
-                occupiedCell.covid19
+                occupiedCell.covid19,
+                occupiedNewTime
               )
 
           case BufferCell(EmptyCell(_)) =>
             newGrid.cells(x)(y) = newGrid.cells(x)(y) match {
-              case occupied@MockCell(_, _, _, _, _, _) => occupied
+              case occupied@MockCell(_, _, _, _, _, _, _) => occupied
               case _ => vacatedCell
             }
             newGrid.cells(destination._1)(destination._2) = BufferCell(occupiedCell)
 
-          case BufferCell(another@MockCell(_, anotherCrowd, _, _, _, anotherCovid19)) =>
+          case BufferCell(another@MockCell(_, _, _, _, _, _, _)) =>
             newGrid.cells(x)(y) = newGrid.cells(x)(y) match {
-              case occupied@MockCell(_, _, _, _, _, _) => occupied
+              case occupied@MockCell(_, _, _, _, _, _, _) => occupied
               case _ => vacatedCell
             }
             val crowd : List[MockCell] =
-              anotherCrowd ++
+              another.crowd ++
               List(MockCell.create(
                 config.mockInitialSignal,
                 destinationPoint = another.destinationPoint,
                 workerId = another.workerId,
-                covid19 = anotherCovid19 || occupiedCell.covid19
+                covid19 = another.covid19 || occupiedCell.covid19,
+                time = another.time
               )) ++
               occupiedCell.crowd
 
             newGrid.cells(destination._1)(destination._2) =
               BufferCell(
-                MockCell.create(config.mockInitialSignal * ((occupiedCell.crowd ++ anotherCrowd).size + 2),
+                MockCell.create(config.mockInitialSignal * ((occupiedCell.crowd ++ another.crowd).size + 2),
                   crowd,
                   occupiedCell.destinationPoint,
                   MockRoutes(
@@ -257,29 +262,31 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                     occupiedCell.routes.previousWorkerId
                   ),
                   grid.workerId,
-                  covid19 = anotherCovid19 || occupiedCell.covid19
+                  covid19 = another.covid19 || occupiedCell.covid19,
+                  time = occupiedNewTime
                 )
               )
 
             crowdOnProcessor += 1
 
-          case another@MockCell(_, anotherCrowd, _, _, _, anotherCovid19) =>
+          case another@MockCell(_, _, _, _, _, _, _) =>
             newGrid.cells(x)(y) = newGrid.cells(x)(y) match {
-              case occupied@MockCell(_, _, _, _, _, _) => occupied
+              case occupied@MockCell(_, _, _, _, _, _, _) => occupied
               case _ => vacatedCell
             }
             val crowd : List[MockCell] =
-              anotherCrowd ++
+              another.crowd ++
                 List(MockCell.create(
                   config.mockInitialSignal,
                   destinationPoint = another.destinationPoint,
                   workerId = another.workerId,
-                  covid19 = anotherCovid19 || occupiedCell.covid19
+                  covid19 = another.covid19 || occupiedCell.covid19,
+                  time = another.time
                 )) ++
                 occupiedCell.crowd
             newGrid.cells(destination._1)(destination._2) =
               MockCell.create(
-                config.mockInitialSignal * ((occupiedCell.crowd ++ anotherCrowd).size + 2),
+                config.mockInitialSignal * ((occupiedCell.crowd ++ another.crowd).size + 2),
                 crowd,
                 occupiedCell.destinationPoint,
                 MockRoutes(
@@ -288,27 +295,29 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                   occupiedCell.routes.previousWorkerId
                 ),
                 grid.workerId,
-                anotherCovid19 || occupiedCell.covid19
+                another.covid19 || occupiedCell.covid19,
+                occupiedNewTime
               )
 
             crowdOnProcessor += 1
 
           case Obstacle() =>
             newGrid.cells(x)(y) = newGrid.cells(x)(y) match {
-              case another@MockCell(_, anotherCrowd, _, _, _, anotherCovid19) =>
+              case another@MockCell(_, _, _, _, _, _, _) =>
                 crowdOnProcessor += 1
 
                 val crowd : List[MockCell] =
-                  anotherCrowd ++
+                  another.crowd ++
                     List(MockCell.create(
                       config.mockInitialSignal,
                       destinationPoint = another.destinationPoint,
                       workerId = another.workerId,
-                      covid19 = anotherCovid19 || occupiedCell.covid19
+                      covid19 = another.covid19 || occupiedCell.covid19,
+                      time = another.time
                     )) ++
                     occupiedCell.crowd
                 MockCell.create(
-                  config.mockInitialSignal * ((occupiedCell.crowd ++ anotherCrowd).size + 2),
+                  config.mockInitialSignal * ((occupiedCell.crowd ++ another.crowd).size + 2),
                   crowd,
                   occupiedCell.destinationPoint,
                   MockRoutes(
@@ -317,7 +326,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                     occupiedCell.routes.previousWorkerId
                   ),
                   grid.workerId,
-                  anotherCovid19 || occupiedCell.covid19
+                  another.covid19 || occupiedCell.covid19,
+                  occupiedNewTime
                 )
               case _ => occupiedCell
             }
@@ -344,7 +354,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             initialCrowd = mock.crowd.head.crowd,
             destinationPoint = mock.crowd.head.destinationPoint,
             workerId = grid.workerId,
-            covid19 = mock.crowd.head.covid19
+            covid19 = mock.crowd.head.covid19,
+            time = mock.crowd.head.time
           ).withSmell(newSmell)
         makeMockMove(singlePedestrianFromCrowd)
 
@@ -354,17 +365,19 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             mock.crowd.drop(1),
             mock.destinationPoint,
             workerId = grid.workerId,
-            covid19 = mock.covid19
+            covid19 = mock.covid19,
+            time = mock.time
           ).withSmell(newSmell)
 
         newGrid.cells(x)(y) = newGrid.cells(x)(y)  match {
-          case newPedestrian@MockCell(_,_,_,_,_,_) =>
+          case newPedestrian@MockCell(_,_,_,_,_,_,_) =>
             MockCell.create(
               initialSignal = config.mockInitialSignal * mock.crowd.size,
               mockWithoutOneCrowdPerson.crowd ++ List(newPedestrian),
               mock.destinationPoint,
               workerId = grid.workerId,
-              covid19 = mockWithoutOneCrowdPerson.covid19
+              covid19 = mockWithoutOneCrowdPerson.covid19,
+              time = mockWithoutOneCrowdPerson.time
             ).withSmell(newSmell)
            case _ =>
               mockWithoutOneCrowdPerson
@@ -383,7 +396,8 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
               mock.routes.previousWorkerId
             ),
             workerId = grid.workerId,
-            covid19 = mock.covid19
+            covid19 = mock.covid19,
+            time = mock.time
           ).withSmell(newSmell)
         makeMockMove(occupiedCell)
       }
@@ -393,7 +407,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
       x <- 0 until config.gridSize
       y <- 0 until config.gridSize
     } yield (x, y, grid.cells(x)(y))).partition({
-      case (_, _, MockCell(_, _, _, _, _, _)) => true
+      case (_, _, MockCell(_, _, _, _, _, _, _)) => true
       case (_, _, _) => false
     })
 

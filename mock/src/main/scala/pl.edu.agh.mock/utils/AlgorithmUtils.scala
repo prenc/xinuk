@@ -120,10 +120,10 @@ class AlgorithmUtils(val workerId: Int) {
 
     for (coordinate <- coordinates) {
       if (grid.cells(coordinate._1)(coordinate._2) != Obstacle())
-        newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)](), workerId), grid.workerId, false)
+        newGrid.cells(coordinate._1)(coordinate._2) = MockCell.create(Signal(1), List(), LocalPoint(1, 1, grid.workerId), MockRoutes(List[Int](), List[(Int, Int)](), workerId), grid.workerId, false, 0)
     }
 
-    (0 until (config.gridSize*2)).foreach { _ =>
+    (0 until (config.gridSize * 2)).foreach { _ =>
       val cells = Array.tabulate(config.gridSize, config.gridSize)((x, y) =>
         newGrid.propagatedSignalForInitial(InitSmellPropagation.calculateSmellAddends, x, y)
       )
