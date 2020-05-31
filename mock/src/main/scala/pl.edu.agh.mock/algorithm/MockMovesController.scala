@@ -21,6 +21,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
   var receivedMessages = 0
   var workerId = 0
   var directionalSmell: Map[Direction.Value, Array[Array[SmellArray]]] = Map[Direction.Value, Array[Array[SmellArray]]]()
+  val random = Random
 
   override def receiveMessage(message: Any): Unit = {
     val tuple = message.asInstanceOf[(Int, Map[Direction.Value, List[Direction.Value]])]
@@ -224,7 +225,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
                   occupiedCell.routes.previousWorkerId
                 ),
                 occupiedCell.workerId,
-                occupiedCell.covid19,
+                if (isHealthy(occupiedCell)) false else occupiedCell.covid19,
                 occupiedNewTime
               )
 
@@ -357,7 +358,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             covid19 = mock.crowd.head.covid19,
             time = mock.crowd.head.time
           ).withSmell(newSmell)
-        makeMockMove(singlePedestrianFromCrowd)
+        if (canMove(singlePedestrianFromCrowd)) makeMockMove(singlePedestrianFromCrowd)
 
         val mockWithoutOneCrowdPerson =
           MockCell.create(
@@ -399,7 +400,7 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
             covid19 = mock.covid19,
             time = mock.time
           ).withSmell(newSmell)
-        makeMockMove(occupiedCell)
+        if (canMove(occupiedCell)) makeMockMove(occupiedCell)
       }
     }
 
@@ -441,5 +442,12 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     point._1 == config.gridSize - 1 || point._2 == config.gridSize - 1 || point._1 == 0 || point._2 == 0
   }
 
+  def canMove(mock: MockCell): Boolean = {
+    (mock.time < 600 + 1) || (mock.time >= 600 + 1 && !mock.covid19)
+  }
+
+  def isHealthy(mock: MockCell): Boolean = {
+    !mock.covid19 || (mock.time == 600 && random.nextDouble() < 0.91) || mock.time >= 600
+  }
 
 }
