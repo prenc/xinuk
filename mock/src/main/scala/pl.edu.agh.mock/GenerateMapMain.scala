@@ -16,7 +16,7 @@ object GenerateMapMain {
 
   def main(args: Array[String]): Unit = {
     val mapTitle = "SomeRandomMap"
-    val map = SimpleJsonMapGenerator.randomMap(60, 12.0, mapTitle)
+    val map = SimpleJsonMapGenerator.randomMap(120, 4.0, mapTitle)
     val jsonMap = Json.toJson(map)
     val jsonMapString = Json.stringify(jsonMap)
     new PrintWriter("map.json") { write(jsonMapString); close() }

@@ -12,6 +12,9 @@ object MockMain extends LazyLogging {
   private val configPrefix = "mock"
   private val metricHeaders = Vector()
 
+  val INCUBATION_PERIOD = 550 // 5-6 days
+  val CONVALESCENT = 1200 // 10-14 days
+
   def main(args: Array[String]): Unit = {
     import pl.edu.agh.xinuk.config.ValueReaders._
     new Simulation(
@@ -21,18 +24,14 @@ object MockMain extends LazyLogging {
       DefaultSmellPropagation.calculateSmellAddends)(new MockMovesController(_)(_),
       {
         case MockCell(_, _, _, _, _, x, y) =>
-          if (x && y >= 0 && y < 200) {
-            Color.yellow
-          } else if (x && y >= 200 && y < 450) {
+          if (x && y >= 0 && y < INCUBATION_PERIOD) {
             Color.orange
-          } else if (x && y >= 450 && y < 600) {
+          } else if (x && y >= INCUBATION_PERIOD && y < CONVALESCENT) {
             Color.red
-          } else if (!x && y >= 600) {
+          } else if (!x && y >= CONVALESCENT) {
             Color.green
-          } else if (x && y >= 600) {
-            Color.blue
           } else {
-            Color.gray
+            Color.pink
           }
         case Obstacle() => Color.black
         case cell: SmellingCell => cellToColorRegions(cell)
