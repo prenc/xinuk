@@ -32,35 +32,11 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     this.workerId = workerId.value
     algorithmUtils = new AlgorithmUtils(this.workerId)
 
-    val grid = Grid.empty(bufferZone, workerId = workerId)
-
-    GridUtils.loadDataFromFile("map.json", grid)
-
-//    if ( workerId.value == 5) {
-//      grid.cells(0)(5) = Obstacle()
-//    }
-
-//    if (workerId.value == 1) {
-//      grid.cells(1)(5) = Obstacle()
-//      grid.cells(2)(5) = Obstacle()
-//      grid.cells(3)(5) = Obstacle()
-//      grid.cells(4)(5) = Obstacle()
-//      grid.cells(5)(5) = Obstacle()
-//      grid.cells(6)(5) = Obstacle()
-//      grid.cells(7)(5) = Obstacle()
-//      grid.cells(8)(5) = Obstacle()
-//      grid.cells(9)(5) = Obstacle()
-//
-//      grid.cells(14)(11) = Obstacle()
-//      grid.cells(13)(11) = Obstacle()
-//      grid.cells(12)(11) = Obstacle()
-//      grid.cells(11)(11) = Obstacle()
-//      grid.cells(10)(11) = Obstacle()
-//      grid.cells(9)(11) = Obstacle()
-//      grid.cells(8)(11) = Obstacle()
-//      grid.cells(7)(11) = Obstacle()
-//      grid.cells(6)(11) = Obstacle()
-//    }
+    val grid = Grid.full(bufferZone, workerId = workerId)
+    if (config.mapPath.nonEmpty) {
+      val mapFile = config.mapPath.substring(0, config.mapPath.indexOf('.')) + workerId.value + ".json"
+      GridUtils.loadDataFromFile(mapFile, grid)
+    }
 
     algorithmUtils.mapLocalDistancesForEveryDirection(grid)
     directionalSmell = algorithmUtils.getDirectionalSmell()

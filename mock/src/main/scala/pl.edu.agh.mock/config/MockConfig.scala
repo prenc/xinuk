@@ -10,6 +10,7 @@ final case class MockConfig(
                              signalAttenuationFactor: Double,
                              workersRoot: Int,
                              shardingMod: Int,
+                             mapPath: String,
 
                              guiType: GuiType,
                              isSupervisor: Boolean,

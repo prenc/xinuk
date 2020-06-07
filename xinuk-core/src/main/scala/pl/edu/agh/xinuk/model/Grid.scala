@@ -56,6 +56,16 @@ object Grid {
     Grid(values, workerId)
   }
 
+  def full(bufferZone: Set[(Int, Int)], emptyCellFactory: => SmellingCell = EmptyCell.Instance, workerId: WorkerId = WorkerId(0))(implicit config: XinukConfig): Grid = {
+    val n = config.gridSize
+    val values = Array.tabulate[GridPart](n, n) {
+      case (x, y) if bufferZone.contains((x, y)) => BufferCell(emptyCellFactory)
+      case (x, y) if x == 0 || x == n - 1 || y == 0 || y == n - 1 => Obstacle()
+      case _ => Obstacle()
+    }
+    Grid(values, workerId)
+  }
+
   val SubcellCoordinates: Vector[(Int, Int)] = {
     val pos = Vector(0, 1, 2)
     pos.flatMap(i => pos.collect { case j if !(i == 1 && j == 1) => (i, j) })
