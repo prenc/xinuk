@@ -66,7 +66,7 @@ class WorkerActor[ConfigType <: XinukConfig](
       this.bufferZone = neighbours.foldLeft(TreeSet.empty[(Int, Int)])((builder, neighbour) => builder | neighbour.position.bufferZone)
       this.movesController = movesControllerFactory(bufferZone, config)
       grid = Grid.empty(bufferZone, workerId = this.id)
-      logger.info(s"${id.value} neighbours: ${neighbours.map(_.position).toList}")
+//      logger.info(s"${id.value} neighbours: ${neighbours.map(_.position).toList}")
       self ! StartIteration(1)
     case StartIteration(1) =>
       val (newGrid, newMetrics, transitionsThroughWorker) = movesController.initialGrid(workerID = this.id)

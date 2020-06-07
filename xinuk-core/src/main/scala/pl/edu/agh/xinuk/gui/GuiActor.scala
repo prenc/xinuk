@@ -31,7 +31,7 @@ class GuiActor private(
 
   override def preStart: Unit = {
     worker ! SubscribeGridInfo(workerId)
-    log.info("GUI started")
+//    log.info("GUI started")
   }
 
   def started: Receive = {

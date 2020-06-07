@@ -22,7 +22,7 @@ final case class MockConfig(
                              repulsionFactor: Double,
                              distanceFactor: Double,
 
-
+                             loadObstacles: Int,
                              signalSuppressionFactorInit: Double,
                              signalAttenuationFactorInit: Double,
                              signalSpeedRatioInit: Int
