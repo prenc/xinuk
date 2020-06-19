@@ -1,5 +1,6 @@
 package pl.edu.agh.mock.algorithm
 
+import akka.remote.WireFormats.TimeUnit
 import pl.edu.agh.mock.config.MockConfig
 import pl.edu.agh.mock.model._
 import pl.edu.agh.mock.model.parallel.MockRoutes
@@ -58,7 +59,9 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
 
   private def initializeMock(workerId: WorkerId, grid: Grid) = {
     var placeForMock = (random.nextInt(config.gridSize), random.nextInt(config.gridSize))
-    while (!grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell]) {
+    val start = System.currentTimeMillis()
+    val timeout : Int = 10000
+    while (!grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell] && start + timeout < System.currentTimeMillis()) {
       placeForMock = (random.nextInt(config.gridSize), random.nextInt(config.gridSize))
     }
     if (grid.cells(placeForMock._1)(placeForMock._2).isInstanceOf[EmptyCell]) {
