@@ -47,11 +47,12 @@ final class MockMovesController(bufferZone: TreeSet[(Int, Int)])(implicit config
     directionalSmell = algorithmUtils.getDirectionalSmell()
 
     algorithmUtils.mapTransitionsThroughThisWorker(grid)
-
+  for (i <- 0 until 30) {
     initializeMock(workerId, grid)
-    initializeMock(workerId, grid)
-    initializeMock(workerId, grid)
-    initializeMock(workerId, grid)
+  }
+    /*    initializeMock(workerId, grid)
+        initializeMock(workerId, grid)
+        initializeMock(workerId, grid)*/
 
     val metrics = MockMetrics.empty()
     (grid, metrics, algorithmUtils.getTransitionsThroughThisWorker())

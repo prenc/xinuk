@@ -33,7 +33,7 @@ object MockMain extends LazyLogging {
           } else {
             Color.pink
           }
-        case Obstacle() => Color.blue
+        case Obstacle() => Color.darkGray
         //case cell: SmellingCell => cellToColorRegions(cell)
       }).start()
   }
